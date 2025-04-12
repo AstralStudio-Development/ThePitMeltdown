@@ -1,4 +1,4 @@
-@file:Suppress("removal", "DEPRECATION")
+@file:Suppress("removal")
 
 package cn.charlotte.pit.js
 
@@ -7,18 +7,17 @@ import cn.charlotte.pit.data.PlayerProfile
 import cn.charlotte.pit.enchantment.rarity.EnchantmentRarity
 import cn.charlotte.pit.enchantment.type.JSEnchantment
 import cn.charlotte.pit.enchantmentInt
-import cn.charlotte.pit.util.AddonUtil
 import cn.charlotte.pit.util.chat.CC
 import jdk.dynalink.beans.StaticClass
-import jdk.nashorn.api.scripting.ScriptObjectMirror
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
+import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory
+import org.openjdk.nashorn.api.scripting.ScriptObjectMirror
 import java.io.File
 import java.util.*
 import java.util.function.Consumer
 import java.util.function.Function
 import javax.script.*
-import kotlin.math.pow
 
 object JSHandler {
 
@@ -27,7 +26,7 @@ object JSHandler {
             Class.forName("jdk.nashorn.api.scripting.NashornScriptEngineFactory").getDeclaredConstructor()
                 .newInstance() as ScriptEngineFactory
         } catch (ex: ClassNotFoundException) {
-            jdk.nashorn.api.scripting.NashornScriptEngineFactory()
+            NashornScriptEngineFactory()
         }
     }
 
@@ -100,7 +99,7 @@ object JSHandler {
             val beKilledFunc = (engine.get("be_killed") as? ScriptObjectMirror)?.isFunction == true
             val beDamagedFunc = (engine.get("be_damaged") as? ScriptObjectMirror)?.isFunction == true
 
-            Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), Runnable {
+            Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), {
 
             }, 1L)
 
