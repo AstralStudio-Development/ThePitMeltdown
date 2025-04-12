@@ -735,19 +735,15 @@ public class HamburgerEvent implements IEvent, IEpicEvent, Listener, IScoreBoard
                     }
                 }
 
-                Bukkit.getOnlinePlayers().forEach(player -> {
-                    PlayerProfile.getPlayerProfileByUuid(player.getUniqueId())
-                            .setMoveSpeed(0.2F * 1.6F);
-                });
+                Bukkit.getOnlinePlayers().forEach(player -> PlayerProfile.getPlayerProfileByUuid(player.getUniqueId())
+                        .setMoveSpeed(0.2F * 1.6F));
             }
         };
         this.runnable.runTaskTimer(ThePit.getInstance(), 20, 20);
 
         Bukkit.getPluginManager().registerEvents(this, ThePit.getInstance());
 
-        Bukkit.getOnlinePlayers().forEach(player -> {
-            this.pizzaDataMap.put(player.getUniqueId(), new PizzaData(player.getUniqueId(), player.getDisplayName()));
-        });
+        Bukkit.getOnlinePlayers().forEach(player -> this.pizzaDataMap.put(player.getUniqueId(), new PizzaData(player.getUniqueId(), player.getDisplayName())));
 
 
         BukkitWorld world = new BukkitWorld(Bukkit.getWorlds().get(0));
@@ -759,7 +755,7 @@ public class HamburgerEvent implements IEvent, IEpicEvent, Listener, IScoreBoard
 
             for (Player player : players) {
                 player.teleport(locations.get(RandomUtil.random.nextInt(locations.size())));
-                player.sendMessage(CC.translate("&c为了保证您的安全，我们已将您传送回出生点"));
+                player.sendMessage(CC.translate("&c为了保证您的安全 我们已将您传送回出生点"));
             }
 
             final ArrayList<PlacedBlockData> data = new ArrayList<>(ClearRunnable.getClearRunnable().getPlacedBlock());
@@ -783,7 +779,6 @@ public class HamburgerEvent implements IEvent, IEpicEvent, Listener, IScoreBoard
                 
                 final CuboidClipboard clipboard = mcedit.load(inputStream);
 
-
                 clipboard.paste(session, vector, false);
 
                 session.flushQueue();
@@ -805,17 +800,11 @@ public class HamburgerEvent implements IEvent, IEpicEvent, Listener, IScoreBoard
                         hologram.spawn();
                         hologram.setAttachedTo(villager);
                     } catch (Exception e) {
-                        Bukkit.getOnlinePlayers()
-                                .forEach(player -> {
-                                    CC.printError(player, e);
-                                });
+                        Bukkit.getOnlinePlayers().forEach(player -> CC.printError(player, e));
                     }
                 });
             } catch (Exception e) {
-                Bukkit.getOnlinePlayers()
-                        .forEach(player -> {
-                            CC.printError(player, e);
-                        });
+                Bukkit.getOnlinePlayers().forEach(player -> CC.printError(player, e));
             }
         });
 

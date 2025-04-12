@@ -22,6 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.material.MaterialData;
 import org.bukkit.potion.PotionEffect;
 
 import java.lang.reflect.Field;
@@ -458,9 +459,8 @@ public class ItemBuilder {
      * @param data The data value.
      * @return This ItemBuilder.
      */
-    @SuppressWarnings("deprecation") // Suppress warning for using legacy data
     public ItemBuilder data(int data) {
-        this.is.setDurability((short) data); // In 1.8, data is stored as durability
+        this.is.setData(new MaterialData(data)); // In 1.8, data is stored as durability
         return this;
     }
 }

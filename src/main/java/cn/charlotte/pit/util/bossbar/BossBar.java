@@ -1,6 +1,7 @@
 package cn.charlotte.pit.util.bossbar;
 
 import cn.charlotte.pit.ThePit;
+import lombok.Getter;
 import net.minecraft.server.v1_8_R3.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -13,6 +14,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Getter
 public class BossBar {
     private final ConcurrentHashMap<UUID, EntityWither> withers = new ConcurrentHashMap<>();
     private String title;
@@ -85,10 +87,9 @@ public class BossBar {
                 if (Bukkit.isPrimaryThread()) {
                     sendPacketInternal(player, packet);
                 } else {
-                    final UUID finalUUID = uuid;
                     Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> {
-                        Player onlinePlayer = Bukkit.getPlayer(finalUUID);
-                        EntityWither currentWither = withers.get(finalUUID);
+                        Player onlinePlayer = Bukkit.getPlayer(uuid);
+                        EntityWither currentWither = withers.get(uuid);
                         if (onlinePlayer != null && onlinePlayer.isOnline() && currentWither != null) {
                             sendPacketInternal(onlinePlayer, packet);
                         }
@@ -111,10 +112,9 @@ public class BossBar {
                 if (Bukkit.isPrimaryThread()) {
                     sendPacketInternal(player, packet);
                 } else {
-                    final UUID finalUUID = uuid;
                     Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> {
-                        Player onlinePlayer = Bukkit.getPlayer(finalUUID);
-                        EntityWither currentWither = withers.get(finalUUID);
+                        Player onlinePlayer = Bukkit.getPlayer(uuid);
+                        EntityWither currentWither = withers.get(uuid);
                         if (onlinePlayer != null && onlinePlayer.isOnline() && currentWither != null) {
                             sendPacketInternal(onlinePlayer, packet);
                         }
@@ -153,11 +153,4 @@ public class BossBar {
         return location.clone().add(location.getDirection().multiply(60));
     }
 
-    public String getTitle() {
-        return this.title;
-    }
-
-    public ConcurrentHashMap<UUID, EntityWither> getWithers() {
-        return this.withers;
-    }
 }

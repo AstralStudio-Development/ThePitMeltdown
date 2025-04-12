@@ -114,8 +114,7 @@ public class CakeEvent implements IEvent, INormalEvent, Listener {
             }
         });
 
-        Bukkit.getPluginManager()
-                .registerEvents(this, ThePit.getInstance());
+        Bukkit.getPluginManager().registerEvents(this, ThePit.getInstance());
 
         this.endTask = new BukkitRunnable() {
             @Override

@@ -22,8 +22,6 @@ public class EventFactory {
     private final List<INormalEvent> normalEvents;
     private final List<IEpicEvent> epicEvents;
 
-
-
     private INormalEvent activeNormalEvent;
     private IEpicEvent activeEpicEvent;
     private Cooldown normalEnd;

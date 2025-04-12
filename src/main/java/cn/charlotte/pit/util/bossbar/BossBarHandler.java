@@ -2,6 +2,7 @@ package cn.charlotte.pit.util.bossbar;
 
 import cn.charlotte.pit.ThePit;
 import cn.charlotte.pit.parm.AutoRegister;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -19,22 +20,22 @@ import java.util.logging.Level;
  * @Author: EmptyIrony
  * @Date: 2021/1/11 23:50
  */
+
 @AutoRegister
 public class BossBarHandler implements Listener {
+    @Getter
     private final BossBar bossBar;
     private BukkitTask updateTask;
     private boolean running = false;
 
+    @Getter
     private static BossBarHandler instance;
-    public static BossBarHandler getInstance() {
-        return instance;
-    }
 
     public BossBarHandler() {
         instance = this;
         this.bossBar = new BossBar("");
 
-        startUpdateTask();
+        this.startUpdateTask();
     }
 
     private void startUpdateTask() {
@@ -69,12 +70,12 @@ public class BossBarHandler implements Listener {
                              }
                         }
                     } catch (Exception e) {
-                        ThePit.getInstance().getLogger().log(Level.SEVERE, "[BossBarHandler] Error during synchronous boss bar update", e);
+                        ThePit.getInstance().getLogger().log(Level.SEVERE, "[BossBarHandler] BossBar 更新出错", e);
                     }
                 });
             }
         }.runTaskTimerAsynchronously(ThePit.getInstance(), 20L, 10L);
-        ThePit.getInstance().getLogger().info("[BossBarHandler] BossBar update task started.");
+        ThePit.getInstance().getLogger().info("[BossBarHandler] BossBar 更新任务开始执行");
     }
 
     public void stopUpdateTask() {
@@ -83,19 +84,18 @@ public class BossBarHandler implements Listener {
          if (this.updateTask != null) {
              this.updateTask.cancel();
              this.updateTask = null;
-             ThePit.getInstance().getLogger().info("[BossBarHandler] BossBar update task stopped.");
+             ThePit.getInstance().getLogger().info("[BossBarHandler] BossBar 更新任务停止");
          }
          try {
-            Object[] playerUUIDs = bossBar.getWithers().keySet().toArray();
-            for (Object uuidObj : playerUUIDs) {
-                 Player player = Bukkit.getPlayer((UUID)uuidObj);
+            for (UUID uuid : bossBar.getWithers().keySet()) {
+                 Player player = Bukkit.getPlayer(uuid);
                  if (player != null) {
                      bossBar.removePlayer(player);
                  }
             }
              bossBar.getWithers().clear();
          } catch (Exception e) {
-             ThePit.getInstance().getLogger().log(Level.SEVERE, "[BossBarHandler] Error clearing boss bars on stop", e);
+             ThePit.getInstance().getLogger().log(Level.SEVERE, "[BossBarHandler] 清理BossBar时出错", e);
          }
     }
 
@@ -111,7 +111,4 @@ public class BossBarHandler implements Listener {
         this.bossBar.removePlayer(event.getPlayer());
     }
 
-    public BossBar getBossBar() {
-        return this.bossBar;
-    }
 }

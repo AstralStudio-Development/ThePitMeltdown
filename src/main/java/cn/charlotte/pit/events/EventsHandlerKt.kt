@@ -9,7 +9,7 @@ import org.bukkit.Bukkit
 import java.util.*
 import kotlin.random.Random
 
-object EventsHandler {
+object EventsHandlerKt {
     val epicQueue: Queue<String> = LinkedList()
     val normalQueue: Queue<String> = LinkedList()
 
@@ -56,7 +56,7 @@ object EventsHandler {
 
         val queue = ThePit.getInstance().mongoDB.eventQueueCollection.findOne()
         if (queue == null) {
-            refreshEvents()
+            this.refreshEvents()
             return
         }
 
@@ -67,7 +67,7 @@ object EventsHandler {
             if (this.epicQueue.size < 45 || this.normalQueue.size < 90) {
                 this.refreshEvents()
             }
-        }catch (e: Exception) {
+        } catch (e: Exception) {
 
         }
     }

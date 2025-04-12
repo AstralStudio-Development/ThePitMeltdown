@@ -47,7 +47,7 @@ dependencies {
 }
 
 tasks.shadowJar {
-    archiveFileName.set("$pluginName-$version.jar")
+    archiveFileName.set("$pluginName.jar")
     mergeServiceFiles()
     exclude("META-INF/**")
 

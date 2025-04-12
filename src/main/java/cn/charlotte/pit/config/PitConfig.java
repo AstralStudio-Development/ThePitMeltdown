@@ -327,10 +327,11 @@ public class PitConfig extends Configuration {
             path = "auth-code"
     )
     public String code = "xxxx";
+
     @ConfigData(
             path = "firewell-code"
     )
-    private String firewellcode = "null";
+    private String firewellcode = null;
 
     @ConfigData(
             path = "curfew.enable"

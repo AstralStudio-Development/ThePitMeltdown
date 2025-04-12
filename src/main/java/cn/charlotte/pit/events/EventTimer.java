@@ -29,7 +29,7 @@ public class EventTimer implements Runnable {
         final int min = Integer.parseInt(minString);
 
         if (min == 55) {
-            String major = EventsHandler.INSTANCE.nextEvent(true);
+            String major = EventsHandler.nextEvent(true);
             cooldown = new Cooldown(1, TimeUnit.MINUTES);
 
             factory.getEpicEvents()
@@ -43,7 +43,7 @@ public class EventTimer implements Runnable {
         if (min != 55 && min != 50 && min % 5 == 0) {
             if (factory.getActiveEpicEvent() == null && factory.getNextEpicEvent() == null && System.currentTimeMillis() - factory.getLastNormalEvent() >= 3 * 60 * 1000) {
                 if (factory.getActiveNormalEvent() == null) {
-                    String mini = EventsHandler.INSTANCE.nextEvent(false);
+                    String mini = EventsHandler.nextEvent(false);
                     cooldown = new Cooldown(1, TimeUnit.MINUTES);
 
                     factory.getNormalEvents()

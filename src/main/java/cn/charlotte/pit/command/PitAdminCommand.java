@@ -1146,7 +1146,7 @@ public class PitAdminCommand {
             permissionNode = "pit.admin"
     )
     public void refreshEvents(Player player) {
-        EventsHandler.INSTANCE.refreshEvents();
+        EventsHandler.refreshEvents();
         player.sendMessage("Refreshed");
     }
 

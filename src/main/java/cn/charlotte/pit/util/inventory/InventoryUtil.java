@@ -2,6 +2,7 @@ package cn.charlotte.pit.util.inventory;
 
 import cn.charlotte.pit.UtilKt;
 import cn.charlotte.pit.data.PlayerProfile;
+import cn.charlotte.pit.data.sub.PerkData;
 import cn.charlotte.pit.data.sub.PlayerInv;
 import cn.charlotte.pit.util.PlayerUtil;
 import cn.charlotte.pit.util.chat.CC;
@@ -9,7 +10,8 @@ import cn.charlotte.pit.util.item.ItemBuilder;
 import cn.charlotte.pit.util.item.ItemUtil;
 import net.minecraft.server.v1_8_R3.*; // Keep NMS imports
 // import org.bson.internal.Base64; // Remove BSON Base64
-import java.util.Base64; // Use standard Java Base64
+import java.util.*;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.v1_8_R3.inventory.CraftItemStack; // Keep NMS dependency
@@ -21,10 +23,6 @@ import org.bukkit.inventory.PlayerInventory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
 import java.util.logging.Level;
 
 /**
@@ -399,65 +397,180 @@ public class InventoryUtil {
     }
 
     public static void supplyItems(Player player) {
-        PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
-        if (profile == null || profile == PlayerProfile.NONE_PROFILE) {
-            player.sendMessage(CC.translate("&c错误: 无法加载你的档案来获取物品！"));
-            return;
+        int arrowAmount = 0;
+        boolean swordFound = false;
+        boolean bowFound = false;
+        int arrowSlot = 8;
+        PlayerProfile playerProfile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
+        boolean miner = false;
+        for (Map.Entry<Integer, PerkData> entry : playerProfile.getChosePerk().entrySet()) {
+            if (entry.getValue().getPerkInternalName().equals("Miner")) {
+                miner = true;
+                break;
+            }
+        }
+        int cobblestone = 0;
+
+        int illegalItems = 0;
+
+        int slot = 0;
+        for (ItemStack item : player.getInventory()) {
+            if (item == null) {
+                slot++;
+                continue;
+            }
+            if (ItemUtil.isIllegalItem(item)) {
+                player.getInventory().remove(item);
+                illegalItems++;
+                slot++;
+                continue;
+            }
+
+            //fixme: why remove the default item (sword & bow slot will reset)
+
+            if (ItemUtil.isDefaultItem(item)) {
+                //player.getInventory().remove(item);
+
+                net.minecraft.server.v1_8_R3.ItemStack nmsItem = UtilKt.reflectGetNmsItem(item);
+                if (nmsItem != null) {
+                    Item itemType = nmsItem.getItem();
+                    if (itemType instanceof ItemArmor) {
+                        player.getInventory().remove(item);
+                    }
+                    if (itemType instanceof ItemSword && swordFound) {
+                        player.getInventory().remove(item);
+                        swordFound = false;
+                    }
+                    if (itemType instanceof ItemBow && bowFound) {
+                        player.getInventory().remove(item);
+                        swordFound = false;
+                    }
+                }
+            }
+
+
+            if (ItemUtil.isRemovedOnJoin(item)) {
+                player.getInventory().remove(item);
+                slot++;
+                continue;
+            }
+
+            if ("default_sword".equals(ItemUtil.getInternalName(item))) {
+                swordFound = true;
+            } else if ("default_bow".equals(ItemUtil.getInternalName(item))) {
+                bowFound = true;
+            } else if (item.getType() == Material.ARROW) {
+                arrowAmount += item.getAmount();
+            }
+            if (item.getType() == Material.COBBLESTONE) {
+                cobblestone += item.getAmount();
+            }
+            slot++;
+        }
+
+
+        if (miner) {
+            if (cobblestone < 32) {
+                player.getInventory().addItem(new ItemBuilder(Material.COBBLESTONE).deathDrop(true).amount(32 - cobblestone).canDrop(false).canSaveToEnderChest(false).internalName("perk_miner").build());
+            }
         }
 
         PlayerInventory inventory = player.getInventory();
-        inventory.clear();
-        inventory.setArmorContents(null);
-
-        boolean useDefaultLayout = true;
-
-        if (useDefaultLayout) {
-            inventory.setItem(0, new ItemBuilder(Material.IRON_SWORD).name("&b铁剑").build());
-            inventory.setItem(1, new ItemBuilder(Material.BOW).name("&b弓").build());
-            inventory.setItem(2, new ItemBuilder(Material.DIAMOND_PICKAXE).name("&b钻镐").build());
-            inventory.setItem(3, new ItemBuilder(Material.DIAMOND_SPADE).name("&b钻铲").build());
-            inventory.setItem(4, new ItemBuilder(Material.COOKED_BEEF).amount(64).name("&b熟牛肉").build());
-            inventory.setItem(5, new ItemBuilder(Material.WOOD).amount(64).name("&b木头").build());
-            inventory.setItem(6, new ItemBuilder(Material.COBBLESTONE).amount(64).name("&b圆石").build());
-
-            inventory.setItem(7, WHITE_STAINED_GLASS_PANE.clone());
-            inventory.setItem(8, GRAY_STAINED_GLASS_PANE.clone());
-
-            inventory.setItem(9, new ItemBuilder(Material.ARROW).amount(32).name("&b箭").build());
-
-            for (int i = 10; i <= 17; i++) {
-                if (inventory.getItem(i) == null) {
-                    inventory.setItem(i, GRAY_STAINED_GLASS_PANE.clone());
-                }
-            }
-            for (int i = 18; i < 36; i++) {
-                if (inventory.getItem(i) == null) {
-                    inventory.setItem(i, WHITE_STAINED_GLASS_PANE.clone());
-                }
-            }
-
-            inventory.setHelmet(new ItemBuilder(Material.IRON_HELMET).name("&b铁头盔").build());
-            inventory.setChestplate(new ItemBuilder(Material.IRON_CHESTPLATE).name("&b铁胸甲").build());
-            inventory.setLeggings(new ItemBuilder(Material.IRON_LEGGINGS).name("&b铁护腿").build());
-            inventory.setBoots(new ItemBuilder(Material.IRON_BOOTS).name("&b铁靴子").build());
-
-        } else {
-            PlayerInv savedInv = profile.getInventory();
-            if (savedInv != null) {
-                ItemStack[] contents = savedInv.getContents();
-                ItemStack[] armor = savedInv.getArmorContents();
-                if (contents != null) {
-                    inventory.setContents(contents);
-                }
-                if (armor != null) {
-                    inventory.setArmorContents(armor);
-                }
-            } else {
-                player.sendMessage(CC.translate("&c未能加载你的保存物品，已给予默认物品。"));
-            }
+        if (ItemUtil.isIllegalItem(inventory.getHelmet()) || ItemUtil.isRemovedOnJoin(inventory.getHelmet())) {
+            inventory.setHelmet(null);
+            illegalItems++;
+        }
+        if (ItemUtil.isIllegalItem(inventory.getChestplate()) || ItemUtil.isRemovedOnJoin(inventory.getChestplate())) {
+            inventory.setChestplate(null);
+            illegalItems++;
+        }
+        if (ItemUtil.isIllegalItem(inventory.getLeggings()) || ItemUtil.isRemovedOnJoin(inventory.getLeggings())) {
+            inventory.setLeggings(null);
+            illegalItems++;
+        }
+        if (ItemUtil.isIllegalItem(inventory.getBoots()) || ItemUtil.isRemovedOnJoin(inventory.getBoots())) {
+            inventory.setBoots(null);
+            illegalItems++;
         }
 
-        player.updateInventory();
+        if (illegalItems > 0) {
+            player.sendMessage(CC.translate("&c我们从您的背包中找到 &e" + illegalItems + "&c 个异常物品，已从中移除,抱歉!"));
+        }
+
+        if (playerProfile.getPlayerOption().isOutfit()) {
+            ItemStack air = new ItemStack(Material.AIR);
+            if (ItemUtil.isDefaultItem(player.getInventory().getHelmet())) {
+                player.getInventory().setHelmet(air);
+            }
+            if (ItemUtil.isDefaultItem(player.getInventory().getChestplate())) {
+                player.getInventory().setChestplate(air);
+            }
+            if (ItemUtil.isDefaultItem(player.getInventory().getLeggings())) {
+                player.getInventory().setLeggings(air);
+            }
+            if (ItemUtil.isDefaultItem(player.getInventory().getBoots())) {
+                player.getInventory().setBoots(air);
+            }
+
+            if (!swordFound) {
+                player.getInventory()
+                        .addItem(new ItemBuilder(Material.IRON_SWORD).internalName("default_sword").defaultItem().canDrop(false).canSaveToEnderChest(false).buildWithUnbreakable());
+            }
+            if (!bowFound) {
+                player.getInventory()
+                        .addItem(new ItemBuilder(Material.BOW).internalName("default_bow").defaultItem().canDrop(false).canSaveToEnderChest(false).buildWithUnbreakable());
+            }
+        }
+        /*
+        player.getInventory()
+                .remove(Material.ARROW);
+        InventoryUtil.addInvReverse(player.getInventory(),
+                (new ItemBuilder(Material.ARROW).internalName("default_arrow").defaultItem().canDrop(false).canSaveToEnderChest(false).amount(32).build()));
+
+         */
+
+        int maxArrow = 32 + Math.max(0, PlayerUtil.getPlayerUnlockedPerkLevel(player, "arrow_armory_perk") * 8);
+        if (arrowAmount > 0 && arrowAmount <= maxArrow) {
+            if (arrowAmount != maxArrow) {
+                ItemBuilder arrowBuilder = new ItemBuilder(Material.ARROW).internalName("default_arrow").defaultItem().canDrop(false).canSaveToEnderChest(false);
+                player.getInventory().addItem(
+                        arrowBuilder.amount(maxArrow - arrowAmount).build()
+                );
+            }
+        } else {
+            if (arrowAmount > maxArrow) {
+                player.getInventory().remove(Material.ARROW);
+            }
+            ItemBuilder arrowBuilder = new ItemBuilder(Material.ARROW).internalName("default_arrow").defaultItem().canDrop(false).canSaveToEnderChest(false);
+            InventoryUtil.addInvReverse(player.getInventory(),
+                    (arrowBuilder.amount(maxArrow).build()));
+        }
+
+        if (playerProfile.getPlayerOption().isOutfit()) {
+            int ironArmorSlot = random.nextInt(3);
+
+            if (player.getInventory().getChestplate() == null || ItemUtil.isDefaultItem(player.getInventory().getChestplate())) {
+                if (ironArmorSlot == 0) {
+                    player.getInventory().setChestplate(new ItemBuilder(Material.IRON_CHESTPLATE).defaultItem().internalName("default_armor").canDrop(false).canSaveToEnderChest(true).buildWithUnbreakable());
+                } else {
+                    player.getInventory().setChestplate(new ItemBuilder(Material.CHAINMAIL_CHESTPLATE).defaultItem().internalName("default_armor").canDrop(false).canSaveToEnderChest(true).buildWithUnbreakable());
+                }
+            }
+            if (player.getInventory().getLeggings() == null || ItemUtil.isDefaultItem(player.getInventory().getLeggings())) {
+                if (ironArmorSlot == 1) {
+                    player.getInventory().setLeggings(new ItemBuilder(Material.IRON_LEGGINGS).defaultItem().internalName("default_armor").canDrop(false).canSaveToEnderChest(true).buildWithUnbreakable());
+                } else {
+                    player.getInventory().setLeggings(new ItemBuilder(Material.CHAINMAIL_LEGGINGS).defaultItem().internalName("default_armor").canDrop(false).canSaveToEnderChest(true).buildWithUnbreakable());
+                }
+            }
+            if (player.getInventory().getBoots() == null || ItemUtil.isDefaultItem(player.getInventory().getBoots())) {
+                if (ironArmorSlot == 2) {
+                    player.getInventory().setBoots(new ItemBuilder(Material.IRON_BOOTS).defaultItem().internalName("default_armor").canDrop(false).canSaveToEnderChest(true).buildWithUnbreakable());
+                } else {
+                    player.getInventory().setBoots(new ItemBuilder(Material.CHAINMAIL_BOOTS).defaultItem().internalName("default_armor").canDrop(false).canSaveToEnderChest(true).buildWithUnbreakable());
+                }
+            }
+        }
     }
 
     public static int getArmorSlot(Material material) {

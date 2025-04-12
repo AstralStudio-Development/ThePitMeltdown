@@ -49,8 +49,7 @@ public class EventPreviewButton extends Button {
     @Override
     public ItemStack getButtonItem(Player player) {
         List<String> lines = new ArrayList<>();
-        EventsHandler instance = EventsHandler.INSTANCE;
-        Queue<String> queues = (major ? instance.getEpicQueue() : instance.getNormalQueue());
+        Queue<String> queues = (major ? EventsHandler.getEpicQueue() : EventsHandler.getNormalQueue());
         for (int i = 0; i < 5; i++) {
             int index = 0;
             try {

@@ -216,7 +216,7 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
         ThreadHelper.Async(new LeaderBoardRunnable(this));
 
         try {
-            EventsHandler.INSTANCE.loadFromDatabase();
+            EventsHandler.loadFromDatabase();
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "从数据库加载 EventsHandler 数据失败", e);
         }
@@ -255,9 +255,9 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
                         }
                         profile.save(player);
                     } else if (profile == null || profile == PlayerProfile.NONE_PROFILE) {
-                        log.warn("关闭期间未在缓存中找到玩家 {} 的档案。如果之前未持久化，数据可能不会保存。", player.getName());
+                        log.warn("关闭期间未在缓存中找到玩家 {} 的档案 如果之前未持久化 数据可能不会保存", player.getName());
                     } else {
-                        log.warn("玩家 {} 的档案存在，但在关闭期间未标记为已加载。", player.getName());
+                        log.warn("玩家 {} 的档案存在，但在关闭期间未标记为已加载", player.getName());
                     }
                 } catch (Exception e) {
                     String playerName = player != null ? player.getName() : "Unknown";
@@ -269,16 +269,16 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
             });
         }
 
-        log.info("所有玩家保存任务已调度。正在等待完成...");
+        log.info("所有玩家保存任务已调度 正在等待完成...");
         try {
             if (!saveLatch.await(30, TimeUnit.SECONDS)) {
-                log.warn("等待玩家数据保存任务完成超时。");
+                log.warn("等待玩家数据保存任务完成超时");
             }
         } catch (InterruptedException e) {
-            log.warn("等待玩家数据保存任务时被中断。");
+            log.warn("等待玩家数据保存任务时被中断");
             Thread.currentThread().interrupt();
         }
-        log.info("玩家数据保存流程结束。");
+        log.info("玩家数据保存流程结束");
 
         log.info("正在清理打开的菜单...");
         Set<UUID> openMenuUUIDs = new HashSet<>(Menu.currentlyOpenedMenus.keySet());
@@ -289,24 +289,23 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
                  try {
                      menu.onClose(player);
                  } catch (Exception e) {
-                      getLogger().log(Level.WARNING, "为玩家 " + player.getName() + " 执行 menu.onClose 时出错", e);
+                      getLogger().log(Level.WARNING, "为玩家 " + player.getName() + " 关闭菜单时出错", e);
                  }
             }
         }
         Menu.currentlyOpenedMenus.clear();
-        log.info("菜单清理完成。");
+        log.info("菜单清理完成");
 
-        BossBarHandler handlerInstance = BossBarHandler.getInstance();
-        if (handlerInstance != null) {
+        if (this.bossBar != null) {
             log.info("正在停止 BossBar 处理器...");
             try {
-                handlerInstance.stopUpdateTask();
-                log.info("BossBar 处理器已停止。");
+                this.bossBar.stopUpdateTask();
+                log.info("BossBar 处理器已停止");
             } catch (Exception e) {
                  getLogger().log(Level.SEVERE, "停止 BossBar 处理器时出错", e);
             }
         } else {
-             log.warn("[ThePit] 禁用期间未找到 BossBarHandler 实例。");
+             log.warn("禁用期间未找到 BossBarHandler 实例");
         }
 
         log.info("正在关闭线程池...");
@@ -339,7 +338,7 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
         if (jedis != null) {
             try {
                 jedis.close();
-                log.info("JedisPool 已关闭。");
+                log.info("JedisPool 已关闭");
             } catch (Exception e) {
                  getLogger().log(Level.SEVERE, "关闭 JedisPool 时出错", e);
             }
@@ -348,7 +347,7 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
         if (mongoDB != null) {
              try {
                  mongoDB.getMongoClient().close();
-                log.info("MongoDB 连接已关闭。");
+                log.info("MongoDB 连接已关闭");
              } catch (Exception e) {
                  getLogger().log(Level.SEVERE, "关闭 MongoDB 连接时出错", e);
              }
@@ -356,8 +355,8 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
 
         Bukkit.getScheduler().cancelTasks(this);
 
-        log.info(getDescription().getName() + " 版本 " + getDescription().getVersion() + " 已禁用。");
-        CC.boardCast("&6&l公告! &7服务器关闭完成。");
+        log.info(getDescription().getName() + " 版本 " + getDescription().getVersion() + " 已禁用");
+        CC.boardCast("&6&l公告! &7服务器关闭完成");
     }
 
     @Override
@@ -386,6 +385,7 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
     }
 
     private void initBossBar() {
+        this.info("正在加载BossBar...");
         this.bossBar = new BossBarHandler();
     }
 
@@ -400,7 +400,7 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
     }
 
     private void loadMenu() {
-        this.getServer().getScheduler().runTaskTimer(this, new MenuUpdateTask(), 20L, 20L);
+        Bukkit.getScheduler().runTaskTimer(this, new MenuUpdateTask(), 20L, 20L);
     }
 
     public void loadEnchantment() {
@@ -808,12 +808,6 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
         );
     }
 
-    /**
-     * 使用 SLF4J Logger 输出 info 级别日志（旧方法，现推荐使用 CC.log）。
-     * @param s 要记录的字符串
-     * @deprecated 请改用 CC.log()
-     */
-    @Deprecated
     public void info(String s) {
         log.info(s);
     }

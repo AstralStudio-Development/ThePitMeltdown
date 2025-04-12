@@ -60,13 +60,13 @@ public class AnimationRunnable extends BukkitRunnable {
             final HashMap<UUID, AnimationData> removeMap = new HashMap<>(animations);
             removeMap.forEach((uuid, animationData) -> {
                 if (!animationData.getPlayer().isOnline() ||
-                        !(Menu.currentlyOpenedMenus.get(animationData.getPlayer().getName()) instanceof MythicWellMenu)) {
+                        !(Menu.currentlyOpenedMenus.get(animationData.getPlayer().getUniqueId()) instanceof MythicWellMenu)) {
                     animations.remove(uuid);
                 }
             });
 
             for (AnimationData data : animations.values()) {
-                Menu menu = Menu.currentlyOpenedMenus.get(data.getPlayer().getName());
+                Menu menu = Menu.currentlyOpenedMenus.get(data.getPlayer().getUniqueId());
 
                 if (data.isFinished()) {
                     Player player = data.getPlayer();

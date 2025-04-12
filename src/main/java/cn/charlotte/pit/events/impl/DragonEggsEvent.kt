@@ -156,12 +156,12 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
     private fun reCreateHologram(location: Location) {
         despawnHolograms()
         try {
-            firstHologram = HologramAPI.createHologram(location.clone().add(0.5, 2.4, 0.5), "§a$clicks")
-            secondHologram = HologramAPI.createHologram(location.clone().add(0.5, 2.0, 0.5), "§e§l点击")
+            firstHologram = HologramAPI.createHologram(location.clone().add(-0.5, 2.4, 0.5), "§a$clicks")
+            secondHologram = HologramAPI.createHologram(location.clone().add(-0.5, 2.0, 0.5), "§e§l点击")
             firstHologram?.spawn()
             secondHologram?.spawn()
         } catch (e: Exception) {
-            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] Failed to create holograms", e)
+            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] 创建Hologram失败", e)
         }
     }
 
@@ -170,7 +170,7 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
             firstHologram?.deSpawn()
             secondHologram?.deSpawn()
         } catch (e: Exception) {
-            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] Error despawning holograms", e)
+            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] 删除Hologram失败", e)
         }
         firstHologram = null
         secondHologram = null

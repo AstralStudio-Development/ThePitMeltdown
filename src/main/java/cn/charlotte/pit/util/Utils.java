@@ -21,7 +21,6 @@ import java.util.Map;
 
 public class Utils {
 
-
     /**
      * 返回-1为没有
      *
@@ -127,23 +126,31 @@ public class Utils {
         if (item == null || item.getType() == Material.AIR) return null;
 
         final String internalName = ItemUtil.getInternalName(item);
-        IMythicItem mythicItem = null;
-        if ("mythic_sword".equals(internalName)) {
-            mythicItem = new MythicSwordItem();
-        } else if ("mythic_bow".equals(internalName)) {
-            mythicItem = new MythicBowItem();
-        } else if ("mythic_leggings".equals(internalName)) {
-            mythicItem = new MythicLeggingsItem();
-        } else if ("angel_chestplate".equals(internalName)) {
-            mythicItem = new AngelChestplate();
-        } else if ("armageddon_boots".equals(internalName)) {
-            mythicItem = new ArmageddonBoots();
-        } else if ("kings_helmet".equals(internalName)) {
-            mythicItem = new GoldenHelmet();
-        } else if ("lucky_chestplate".equals(internalName)) {
-            mythicItem = new LuckyChestplate();
-        } else {
-            return null;
+        IMythicItem mythicItem;
+        switch (internalName) {
+            case "mythic_sword":
+                mythicItem = new MythicSwordItem();
+                break;
+            case "mythic_bow":
+                mythicItem = new MythicBowItem();
+                break;
+            case "mythic_leggings":
+                mythicItem = new MythicLeggingsItem();
+                break;
+            case "angel_chestplate":
+                mythicItem = new AngelChestplate();
+                break;
+            case "armageddon_boots":
+                mythicItem = new ArmageddonBoots();
+                break;
+            case "kings_helmet":
+                mythicItem = new GoldenHelmet();
+                break;
+            case "lucky_chestplate":
+                mythicItem = new LuckyChestplate();
+                break;
+            default:
+                return null;
         }
 
         mythicItem.loadFromItemStack(item);

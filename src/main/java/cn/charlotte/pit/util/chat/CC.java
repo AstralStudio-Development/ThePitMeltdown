@@ -98,9 +98,6 @@ public class CC {
         SB_BAR = ChatColor.GOLD.toString() + ChatColor.STRIKETHROUGH + "----------------------";
     }
 
-    public CC() {
-    }
-
     public static String stripColor(String input) {
         return VANILLA_PATTERN.matcher(input).replaceAll("");
     }

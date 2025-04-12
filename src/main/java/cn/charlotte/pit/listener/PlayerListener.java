@@ -579,7 +579,7 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPreExplosion(ExplosionPrimeEvent event) {
         if (event.getEntity() instanceof TNTPrimed) {
-            if (event.getEntity().hasMetadata("internal") && event.getEntity().getMetadata("internal").size() > 0 && "red_packet".equals(event.getEntity().getMetadata("internal").get(0).asString())) {
+            if (event.getEntity().hasMetadata("internal") && !event.getEntity().getMetadata("internal").isEmpty() && "red_packet".equals(event.getEntity().getMetadata("internal").get(0).asString())) {
                 Location location = event.getEntity().getLocation();
                 float radius = event.getRadius();
 
@@ -615,10 +615,10 @@ public class PlayerListener implements Listener {
 
     @EventHandler
     public void onTntExplode(EntityExplodeEvent event) {
-        if (event.getEntity().hasMetadata("shooter") && event.getEntity().getMetadata("shooter").size() > 0) {
+        if (event.getEntity().hasMetadata("shooter") && !event.getEntity().getMetadata("shooter").isEmpty()) {
             event.setYield(0);
             event.blockList().clear();
-            if (event.getEntity().hasMetadata("internal") && event.getEntity().getMetadata("internal").size() > 0 && (event.getEntity().getMetadata("internal").get(0).asString().equalsIgnoreCase("tnt_enchant_item") || event.getEntity().getMetadata("internal").get(0).asString().equalsIgnoreCase("insta_boom_enchant_item"))) {
+            if (event.getEntity().hasMetadata("internal") && !event.getEntity().getMetadata("internal").isEmpty() && (event.getEntity().getMetadata("internal").get(0).asString().equalsIgnoreCase("tnt_enchant_item") || event.getEntity().getMetadata("internal").get(0).asString().equalsIgnoreCase("insta_boom_enchant_item"))) {
                 return;
             }
             List<EntityFallingBlock> fallingBlocks = new ArrayList<>();
@@ -699,17 +699,13 @@ public class PlayerListener implements Listener {
             Stream<AbstractMedal> stream = ThePit.getInstance().getMedalFactory().getMedals().stream()
                     .filter(abstractMedal -> abstractMedal.getInternalName().equals("GET_RARE_ENCHANT"));
             Optional<AbstractMedal> first = stream.findFirst();
-            AbstractMedal medal = first.get();
-
-            medal.addProgress(PlayerProfile.getPlayerProfileByUuid(event.getPlayer().getUniqueId()), 1);
+            first.ifPresent(medal -> medal.addProgress(PlayerProfile.getPlayerProfileByUuid(event.getPlayer().getUniqueId()), 1));
         }
 
-        AbstractMedal medal = ThePit.getInstance().getMedalFactory().getMedals().stream()
+        ThePit.getInstance().getMedalFactory().getMedals().stream()
                 .filter(abstractMedal -> abstractMedal.getInternalName().equals("STATUS_ENCHANT_TIMES"))
-                .findFirst()
-                .get();
+                .findFirst().ifPresent(medal -> medal.addProgress(PlayerProfile.getPlayerProfileByUuid(event.getPlayer().getUniqueId()), 1));
 
-        medal.addProgress(PlayerProfile.getPlayerProfileByUuid(event.getPlayer().getUniqueId()), 1);
     }
 
 

@@ -410,12 +410,18 @@ public class PlayerUtil {
         player.setAllowFlight(false);
         player.setCanPickupItems(true);
         if (clearInventory) {
+            player.getInventory().setArmorContents(new ItemStack[4]);
             player.getInventory().clear();
-            player.getInventory().setArmorContents(null);
+            //FIXME TEST ONLY
+            /*
+            ItemStack[] contents = player.getInventory().getContents();
+            for (int i = 0; i < contents.length; i++) {
+                contents[i] = new ItemStack(Material.STAINED_GLASS_PANE, 1, (byte)15);
+            }
+            player.getInventory().setContents(contents);
+            */
 
-            player.setItemOnCursor(new ItemStack(Material.AIR));
-
-            player.getEnderChest().clear();
+            player.getInventory().setHeldItemSlot(0);
         }
         if (closeInventory) {
             player.closeInventory();

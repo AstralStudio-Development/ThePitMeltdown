@@ -8,7 +8,7 @@ import org.bukkit.entity.Player
 import java.util.*
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-class FixedRewardData() {
+class FixedRewardData {
     companion object {
         private val cache: HashMap<UUID, FixedRewardData> = HashMap()
         private var loading: Boolean = false

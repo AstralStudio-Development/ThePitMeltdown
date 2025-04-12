@@ -123,7 +123,7 @@ object PitHook {
 
     private fun loadAPI() {
         ThePit.getInstance().pointsAPI = PlayerPointsAPIImpl;
-        JSHandler.load()
+        //JSHandler.load()
     }
 
     private fun loadCommands() {

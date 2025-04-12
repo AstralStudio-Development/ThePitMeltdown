@@ -472,7 +472,8 @@ public class GameEffectListener implements Listener {
                 final float enchantDamage = EnchantmentManager.a(entityPlayer.bA(), ((CraftLivingEntity) victim).getHandle().getMonsterType());
                 final boolean critical = entityPlayer.fallDistance > 0.0F && !entityPlayer.onGround && !entityPlayer.k_() && !entityPlayer.V() && !entityPlayer.hasEffect(MobEffectList.BLINDNESS) && entityPlayer.vehicle == null;
                 attacker.sendMessage(CC.translate("&7基础: &c" + value + "&7,附魔伤害: &c" + enchantDamage + "&7,暴击: &c" + critical));
-            } catch (Exception e) {/* ignore */}
+            } catch (Exception e) {
+            }
         }
         if (victimProfile.getPlayerOption().isDebugDamageMessage()) {
             victim.sendMessage(CC.translate("&7受到伤害(Damage/Final Damage): &c" + numFormatTwo.format(currentDamage) + "&7/&c" + numFormatTwo.format(event.getDamage())));

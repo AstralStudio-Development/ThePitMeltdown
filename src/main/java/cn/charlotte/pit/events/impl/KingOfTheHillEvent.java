@@ -75,13 +75,8 @@ public class KingOfTheHillEvent implements IEvent, INormalEvent, Listener {
 
         spawnKothCircle(location, 7, Material.GOLD_BLOCK);
 
-        BukkitRunnable runnable = new BukkitRunnable() {
-            @Override
-            public void run() {
-                ThePit.getInstance().getEventFactory().inactiveEvent(KingOfTheHillEvent.this);
-            }
-        };
-        runnable.runTaskLater(ThePit.getInstance(), 20 * 60 * 4);
+        Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), () -> 
+                ThePit.getInstance().getEventFactory().inactiveEvent(KingOfTheHillEvent.this), 20 * 60 * 4);
     }
 
     @Override
@@ -104,36 +99,36 @@ public class KingOfTheHillEvent implements IEvent, INormalEvent, Listener {
         }
     }
 
-    public void spawnKothCircle(Location var1, int var2, Material var3) {
-        int var4 = var2 + 1;
-        int var5 = var1.getBlockX();
-        int var6 = var1.getBlockY();
-        int var7 = var1.getBlockZ();
-        World var8 = var1.getWorld();
-        int var9 = var4 * var4;
+    public void spawnKothCircle(Location location, int range, Material type) {
+        int newRange = range + 1;
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+        World world = location.getWorld();
+        int rangeSquare = newRange * newRange;
 
         this.blocks.clear();
         this.blockData.clear();
 
-        for (int var10 = var5 - var4; var10 <= var5 + var4; ++var10) {
-            for (int var11 = var7 - var4; var11 <= var7 + var4; ++var11) {
-                if ((var5 - var10) * (var5 - var10) + (var7 - var11) * (var7 - var11) <= var9) {
-                    Location var12 = new Location(var8, var10, var6, var11);
-                    Block currentBlock = var8.getBlockAt(var10, var6, var11);
+        for (int newX = x - newRange; newX <= x + newRange; ++newX) {
+            for (int var11 = z - newRange; var11 <= z + newRange; ++var11) {
+                if ((x - newX) * (x - newX) + (z - var11) * (z - var11) <= rangeSquare) {
+                    Location var12 = new Location(world, newX, y, var11);
+                    Block currentBlock = world.getBlockAt(newX, y, var11);
                     this.blocks.put(currentBlock, currentBlock.getType());
                     this.blockData.put(currentBlock, currentBlock.getData());
-                    currentBlock.setType(var3);
+                    currentBlock.setType(type);
                 }
             }
         }
 
-        Block centerGlass = var8.getBlockAt(var1);
+        Block centerGlass = world.getBlockAt(location);
         this.blocks.put(centerGlass, centerGlass.getType());
         this.blockData.put(centerGlass, centerGlass.getData());
         centerGlass.setType(Material.STAINED_GLASS);
         centerGlass.setData((byte) 3);
 
-        Block centerBeacon = var1.clone().add(0.0, -1.0, 0.0).getBlock();
+        Block centerBeacon = location.clone().add(0.0, -1.0, 0.0).getBlock();
         this.blocks.put(centerBeacon, centerBeacon.getType());
         this.blockData.put(centerBeacon, centerBeacon.getData());
         centerBeacon.setType(Material.BEACON);
@@ -146,10 +141,10 @@ public class KingOfTheHillEvent implements IEvent, INormalEvent, Listener {
 
         for (int var18 = -1; var18 <= 1; ++var18) {
             for (int var19 = -1; var19 <= 1; ++var19) {
-                Block platformBlock = var1.clone().add(var18, -2.0, var19).getBlock();
+                Block platformBlock = location.clone().add(var18, -2.0, var19).getBlock();
                 this.blocks.put(platformBlock, platformBlock.getType());
                 this.blockData.put(platformBlock, platformBlock.getData());
-                platformBlock.setType(var3);
+                platformBlock.setType(type);
             }
         }
     }
@@ -164,11 +159,9 @@ public class KingOfTheHillEvent implements IEvent, INormalEvent, Listener {
             Block block = entry.getKey();
             Material originalType = entry.getValue();
             Byte originalData = this.blockData.get(block);
+            block.setType(originalType);
             if (originalData != null) {
-                block.setType(originalType);
                 block.setData(originalData);
-            } else {
-                block.setType(originalType);
             }
         }
         this.blocks.clear();
