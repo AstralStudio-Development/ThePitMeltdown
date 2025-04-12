@@ -4,7 +4,7 @@ ThePitMeltdown
 > 一个致力于添加更多功能的 [ThePitPremium](https://github.com/ThePitCommunity/ThePitPremium) 分支。
 
 ## 如何使用 (服务器管理员)
-你可以从 [此处](https://github.com/AstralStudio/ThePitMeltdown/releases/latest) 下载 ThePitMeltdown 的最新构建版本。
+你可以从 [此处](https://github.com/AstralStudio-Development/ThePitMeltdown/releases/latest) 下载 ThePitMeltdown 的最新构建版本。
 
 也可以通过 [此处](#构建此插件) 的构建指南自行构建。
 
