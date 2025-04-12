@@ -75,7 +75,7 @@ class SacrosanctCactusMenu : Menu() {
 
             override fun getButtonItem(player: Player): ItemStack {
                 val enchantments: MutableList<Map<AbstractEnchantment, Int>> = ArrayList()
-                val possibleEnchantments: MutableList<AbstractEnchantment> = ThePit.getApi().armorEnchantments()
+                val possibleEnchantments: MutableList<AbstractEnchantment> = ThePit.api.armorEnchantments()
                 val random = ThreadLocalRandom.current()
                 val colors = arrayOf(
                     MythicColor.RED,

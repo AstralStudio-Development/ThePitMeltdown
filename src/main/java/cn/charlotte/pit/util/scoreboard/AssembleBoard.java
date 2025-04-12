@@ -9,8 +9,10 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 public class AssembleBoard {
 
@@ -20,6 +22,10 @@ public class AssembleBoard {
     private final List<String> identifiers = new ArrayList<>();
 
     private final UUID uuid;
+
+    // Cache fields for on-demand update
+    private String lastTitle = null;
+    private List<String> lastLines = Collections.emptyList(); // Initialize with empty list
 
     /**
      * Assemble Board.
@@ -82,8 +88,17 @@ public class AssembleBoard {
      */
     private void setup(Player player) {
         Scoreboard scoreboard = getScoreboard();
-        player.setScoreboard(scoreboard);
-        getObjective();
+        // Avoid setting scoreboard if it's already the one we manage or if hooking
+        if (player.getScoreboard() != scoreboard) {
+             try {
+                 player.setScoreboard(scoreboard);
+             } catch (IllegalStateException e) {
+                 // Handle potential errors if player is offline during setup (less likely but possible)
+                 Bukkit.getLogger().warning("[Assemble] Failed to set scoreboard for offline player? " + player.getName());
+                 return; // Stop setup if scoreboard can't be set
+             }
+        }
+        getObjective(); // Ensure objective exists
 
         // Send Update.
         AssembleBoardCreatedEvent createdEvent = new AssembleBoardCreatedEvent(this);
@@ -102,27 +117,36 @@ public class AssembleBoard {
 
     /**
      * Get the unique identifier for position in scoreboard.
+     * Uses a simpler prefix+number approach instead of color codes.
      *
      * @param position for identifier.
-     * @return unique identifier.
+     * @return unique identifier (e.g., "_sb0", "_sb1").
      */
     public String getUniqueIdentifier(int position) {
-        String identifier = getRandomChatColor(position) + ChatColor.WHITE;
-
-        while (this.identifiers.contains(identifier)) {
-            identifier = identifier + getRandomChatColor(position) + ChatColor.WHITE;
-        }
-
-        // This is rare, but just in case, make the method recursive
-        if (identifier.length() > 16) {
-            return this.getUniqueIdentifier(position);
-        }
-
-        // Add our identifier to the list so there are no duplicates
-        this.identifiers.add(identifier);
-
-        return identifier;
+        // Note: This assumes max lines <= 15, fitting within 16 chars easily.
+        // If more lines were possible, this might need adjustment.
+        return "§" + position; // Use section sign + number for uniqueness up to 15
+        // Alternative: return "_sb" + position;
     }
+
+    // --- Getters and Setters for Cache --- 
+    public String getLastTitle() {
+        return lastTitle;
+    }
+
+    public void setLastTitle(String lastTitle) {
+        this.lastTitle = lastTitle;
+    }
+
+    public List<String> getLastLines() {
+        return lastLines;
+    }
+
+    // Store a copy of the list to prevent external modification issues
+    public void setLastLines(List<String> newLines) {
+        this.lastLines = (newLines == null) ? Collections.emptyList() : new ArrayList<>(newLines);
+    }
+    // --- End Getters and Setters --- 
 
     public Assemble getAssemble() {
         return this.assemble;
@@ -133,6 +157,8 @@ public class AssembleBoard {
     }
 
     public List<String> getIdentifiers() {
+        // Note: getUniqueIdentifier no longer uses this list for collision checking
+        // This list might be removable if AssembleBoardEntry doesn't need it
         return this.identifiers;
     }
 

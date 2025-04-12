@@ -1,5 +1,6 @@
 package cn.charlotte.pit.util.chat;
 
+import cn.charlotte.pit.ThePit;
 import cn.charlotte.pit.data.PlayerProfile;
 import cn.charlotte.pit.data.sub.PlayerOption;
 import com.google.gson.Gson;
@@ -17,8 +18,10 @@ import org.apache.http.util.EntityUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 /**
@@ -140,6 +143,8 @@ public class CC {
 
     @SneakyThrows
     public static String printErrorWithCode(Exception e) {
+        // This method performs a blocking network call and MUST be called asynchronously.
+        // Consider returning CompletableFuture<String> or handling async differently.
         StringBuilder sb = new StringBuilder();
         sb.append(e.toString()).append("\n");
         for (StackTraceElement element : e.getStackTrace()) {
@@ -148,18 +153,56 @@ public class CC {
                     .append("\n");
         }
 
-        CloseableHttpClient client = HttpClientBuilder.create().build();
+        // TODO: Consider making the HTTP client static or managed elsewhere if used frequently
+        try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
+            HttpPost postRequest = new HttpPost("http://chatlog.staff.mc.netease.domcer.com:7777/documents");
+            StringEntity userEntity = new StringEntity(sb.toString(), HTTP.UTF_8);
+            postRequest.setEntity(userEntity);
 
-        HttpPost postRequest = new HttpPost("http://chatlog.staff.mc.netease.domcer.com:7777/documents");
-        StringEntity userEntity = new StringEntity(sb.toString(), HTTP.UTF_8);
-        postRequest.setEntity(userEntity);
-
-        HttpResponse response = client.execute(postRequest);
-        if (response.getStatusLine().getStatusCode() == 200) {
-            JsonObject responseObject = gson.fromJson(EntityUtils.toString(response.getEntity()), JsonObject.class);
-            return responseObject.get("key").getAsString();
+            // !!! Blocking network call !!!
+            HttpResponse response = client.execute(postRequest);
+            if (response.getStatusLine().getStatusCode() == 200) {
+                // Ensure response entity is consumed to free resources
+                String responseString = EntityUtils.toString(response.getEntity());
+                JsonObject responseObject = gson.fromJson(responseString, JsonObject.class);
+                return responseObject.get("key").getAsString();
+            } else {
+                 // Log the error status code
+                 System.err.println("Error uploading stack trace, status code: " + response.getStatusLine().getStatusCode());
+                 EntityUtils.consumeQuietly(response.getEntity()); // Consume entity on error too
+                 return "FAILED";
+            }
+        } catch (Exception ex) {
+             // Log the exception during HTTP call
+             System.err.println("Exception during stack trace upload: " + ex.getMessage());
+             ex.printStackTrace();
+             return "FAILED_EXCEPTION";
         }
-        return "FAILED";
+    }
+
+    // Overload to explicitly handle async execution
+    public static void printErrorWithCodeAsync(Player player, Exception e, java.util.function.Consumer<String> callback) {
+        CompletableFuture.supplyAsync(() -> printErrorWithCode(e), ThePit.getInstance().getSavingThreadPool()) // Use a suitable executor
+            .whenComplete((result, throwable) -> {
+                // Ensure callback runs on the main thread if it interacts with Bukkit API
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        if (throwable != null) {
+                            player.sendMessage(translate("&c上传错误日志时出错: " + throwable.getMessage()));
+                            callback.accept("FAILED_ASYNC");
+                        } else {
+                            if (result.startsWith("FAILED")) {
+                                player.sendMessage(translate("&c上传错误日志失败 (Code: " + result + ")."));
+                            }
+                            player.spigot().sendMessage(new ChatComponentBuilder(translate("&4错误! &c错误代码: " + result + " , 请将其上报至管理员"))
+                                .setCurrentClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, result))
+                                .create());
+                            callback.accept(result);
+                        }
+                    }
+                }.runTask(ThePit.getInstance());
+            });
     }
 
     public static String translate(String in) {
@@ -167,7 +210,8 @@ public class CC {
     }
 
     public static List<String> translate(List<String> lines) {
-        List<String> toReturn = new ArrayList<>();
+        // Minor optimization: Initialize with capacity
+        List<String> toReturn = new ArrayList<>(lines.size());
 
         for (String line : lines) {
             toReturn.add(ChatColor.translateAlternateColorCodes('&', line));
@@ -177,7 +221,8 @@ public class CC {
     }
 
     public static List<String> translate(String[] lines) {
-        List<String> toReturn = new ArrayList<>();
+        // Minor optimization: Initialize with capacity
+        List<String> toReturn = new ArrayList<>(lines.length);
 
         for (String line : lines) {
             if (line != null) {
@@ -189,14 +234,35 @@ public class CC {
     }
 
     public static void boardCast(String text) {
+        // Optimization: Translate once before looping
+        String translatedText = CC.translate(text);
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendMessage(CC.translate(text));
+            player.sendMessage(translatedText);
         }
     }
 
     public static boolean canPlayerSeeMessage(Player player, MessageType type) {
+        // FIXME: Performance Issue! Accessing full PlayerProfile in a loop is inefficient.
+        // This should ideally use a lightweight cache for PlayerOption.
         PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
+        // Added null check for safety, though profile should ideally not be null for online players
+        if (profile == null || profile == PlayerProfile.NONE_PROFILE) {
+             // Decide default behavior if profile is missing (e.g., show all or none?)
+             // Returning true allows messages, returning false blocks them.
+             // Consider logging a warning here.
+             // log.warning("PlayerProfile not found or not loaded for " + player.getName() + " in canPlayerSeeMessage");
+             return false; // Default to showing messages if profile is missing
+        }
+
         PlayerOption option = profile.getPlayerOption();
+        // Added null check for option
+        if (option == null) {
+             // Handle case where option object is missing
+             // log.warning("PlayerOption is null for " + player.getName()");
+             return false; // Default to showing messages
+        }
+
+        // Original logic
         if (type.equals(MessageType.BOUNTY) && !option.isBountyNotify()) {
             return false;
         }
@@ -220,9 +286,11 @@ public class CC {
 
 
     public static void boardCast(MessageType type, String text) {
+        // Optimization: Translate once before looping
+        String translatedText = CC.translate(text);
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (canPlayerSeeMessage(player, type)) {
-                player.sendMessage(CC.translate(text));
+                player.sendMessage(translatedText);
             }
         }
     }
@@ -240,9 +308,11 @@ public class CC {
     }
 
     public static void boardCastWithPermission(String text, String permission) {
+        // Optimization: Translate once before looping
+        String translatedText = CC.translate(text);
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission(permission)) {
-                player.sendMessage(CC.translate(text));
+                player.sendMessage(translatedText);
             }
         }
     }

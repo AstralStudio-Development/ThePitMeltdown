@@ -59,7 +59,8 @@ public class PlayerUtil {
             return null;
         }
 
-        if (profile.getChosePerk().get(5) == null) {
+        PerkData chosenMega = profile.getChosePerk().get(5);
+        if (chosenMega == null) {
             return null;
         }
 
@@ -67,7 +68,7 @@ public class PlayerUtil {
                 .getPerkFactory()
                 .getPerks()
                 .stream()
-                .filter(abstractPerk -> abstractPerk.getPerkType() == PerkType.MEGA_STREAK && abstractPerk.getInternalPerkName().equals(profile.getChosePerk().get(5).getPerkInternalName()))
+                .filter(abstractPerk -> abstractPerk.getPerkType() == PerkType.MEGA_STREAK && abstractPerk.getInternalPerkName().equals(chosenMega.getPerkInternalName()))
                 .findFirst();
 
         if (first.isPresent()) {
@@ -80,6 +81,7 @@ public class PlayerUtil {
         }
         return null;
     }
+
     public static void playThunderEffect(Location thunderLocation) {
         EntityLightning lightning = new EntityLightning(
                 ((CraftWorld) thunderLocation.getWorld()).getHandle(), thunderLocation.getX(), thunderLocation.getY(), thunderLocation.getZ(), true, true
@@ -213,7 +215,7 @@ public class PlayerUtil {
         if (UtilKt.hasRealMan(player)) return false;
         PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
         for (Map.Entry<Integer, PerkData> entry : profile.getChosePerk().entrySet()) {
-            if (entry.getValue().getPerkInternalName().equals(internal)) {
+            if (entry.getValue() != null && entry.getValue().getPerkInternalName().equals(internal)) {
                 return true;
             }
         }
@@ -253,23 +255,20 @@ public class PlayerUtil {
     }
 
     public static int getAmountOfActiveHealingPerk(Player player) {
-        boolean vampirePresent = PlayerUtil.isPlayerChosePerk(player, "Vampire");
-        boolean goldenHeadPresent = PlayerUtil.isPlayerChosePerk(player, "GoldenHead");
-        boolean ramboPresent = PlayerUtil.isPlayerChosePerk(player, "rambo");
-        boolean olympusPresent = PlayerUtil.isPlayerChosePerk(player, "Olympus");
-        boolean tastySoupPresent = PlayerUtil.isPlayerChosePerk(player, "tasty_soup_perk");
         int amount = 0;
-        PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
-        if (vampirePresent || ramboPresent || !profile.isInArena()) {
-            return Integer.MAX_VALUE;
-        }
-        if (goldenHeadPresent) {
+        if (PlayerUtil.isPlayerChosePerk(player, "Vampire")) {
             amount++;
         }
-        if (olympusPresent) {
+        if (PlayerUtil.isPlayerChosePerk(player, "rambo")) {
             amount++;
         }
-        if (tastySoupPresent) {
+        if (PlayerUtil.isPlayerChosePerk(player, "Olympus")) {
+            amount++;
+        }
+        if (PlayerUtil.isPlayerChosePerk(player, "OverHeal")) {
+            amount++;
+        }
+        if (PlayerUtil.isPlayerChosePerk(player, "GoldenHeart")) {
             amount++;
         }
         return amount;
@@ -299,10 +298,7 @@ public class PlayerUtil {
     public static int getPlayerUnlockedPerkLevel(Player player, String internal) {
         PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
         PerkData data = profile.getUnlockedPerkMap().get(internal);
-        if (data == null) {
-            return 0;
-        }
-        return data.getLevel();
+        return data == null ? 0 : data.getLevel();
     }
 
     public static boolean isPlayerBoughtPerk(Player player, String internal) {

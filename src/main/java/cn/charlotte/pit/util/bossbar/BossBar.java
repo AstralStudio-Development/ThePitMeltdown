@@ -1,5 +1,6 @@
 package cn.charlotte.pit.util.bossbar;
 
+import cn.charlotte.pit.ThePit;
 import net.minecraft.server.v1_8_R3.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -7,12 +8,13 @@ import org.bukkit.craftbukkit.v1_8_R3.CraftWorld;
 import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BossBar {
-    private final HashMap<UUID, EntityWither> withers = new HashMap<>();
+    private final ConcurrentHashMap<UUID, EntityWither> withers = new ConcurrentHashMap<>();
     private String title;
 
     public BossBar(String title) {
@@ -20,64 +22,131 @@ public class BossBar {
     }
 
     public void addPlayer(Player player) {
-        if (withers.containsKey(player.getUniqueId())) {
-            this.removePlayer(player);
-        }
-        EntityWither wither = new EntityWither(
-                ((CraftWorld) player.getWorld()).getHandle());
+        if (player == null || !player.isOnline()) return;
+        final UUID playerUUID = player.getUniqueId();
+
+        EntityWither wither = new EntityWither(((CraftWorld) player.getWorld()).getHandle());
         Location location = getWitherLocation(player.getLocation());
         wither.setCustomName(title);
         wither.setInvisible(true);
         wither.setLocation(location.getX(), location.getY(), location.getZ(), 0.0F, 0.0F);
-        PacketPlayOutSpawnEntityLiving packet = new PacketPlayOutSpawnEntityLiving(wither);
-        ((CraftPlayer) player).getHandle().playerConnection.sendPacket(packet);
-        withers.put(player.getUniqueId(), wither);
+
+        withers.put(playerUUID, wither);
+
+        final PacketPlayOutSpawnEntityLiving packet = new PacketPlayOutSpawnEntityLiving(wither);
+
+        if (Bukkit.isPrimaryThread()) {
+            sendPacketInternal(player, packet);
+        } else {
+            Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> sendPacketInternal(player, packet));
+        }
     }
 
     public void removePlayer(Player player) {
-        EntityWither wither = withers.remove(player.getUniqueId());
+        if (player == null) return;
+        final UUID playerUUID = player.getUniqueId();
+        EntityWither wither = withers.remove(playerUUID);
         if (wither == null) return;
-        PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(wither.getId());
-        ((CraftPlayer) player).getHandle().playerConnection.sendPacket(packet);
+
+        final PacketPlayOutEntityDestroy packet = new PacketPlayOutEntityDestroy(wither.getId());
+
+        if (Bukkit.isPrimaryThread()) {
+            sendPacketInternal(player, packet);
+        } else {
+            Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> {
+                Player onlinePlayer = Bukkit.getPlayer(playerUUID);
+                if (onlinePlayer != null && onlinePlayer.isOnline()) {
+                    sendPacketInternal(onlinePlayer, packet);
+                }
+            });
+        }
+    }
+
+    private void sendPacketInternal(Player player, Packet<?> packet) {
+        if (player != null && player.isOnline() && packet != null) {
+            try {
+                ((CraftPlayer) player).getHandle().playerConnection.sendPacket(packet);
+            } catch (Exception e) {
+                ThePit.getInstance().getLogger().warning("[BossBar] Failed to send packet " + packet.getClass().getSimpleName() + " to " + player.getName() + ": " + e.getMessage());
+            }
+        }
     }
 
     public void setProgress(double progress) {
-        final HashMap<UUID, EntityWither> map = new HashMap<>(withers);
-        for (Map.Entry<UUID, EntityWither> entry : map.entrySet()) {
-            Player player = Bukkit.getPlayer(entry.getKey());
-            if (player != null && player.isOnline()) {
-                EntityWither entityWither = entry.getValue();
-                entityWither.setHealth((float) (progress * entityWither.getMaxHealth()));
-                PacketPlayOutEntityMetadata packet = new PacketPlayOutEntityMetadata(
-                        entityWither.getId(), entityWither.getDataWatcher(), true);
-                ((CraftPlayer) player).getHandle().playerConnection.sendPacket(packet);
+        final double finalProgress = Math.max(0.0, Math.min(1.0, progress));
+
+        for (UUID uuid : withers.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            EntityWither wither = withers.get(uuid);
+            if (player != null && player.isOnline() && wither != null) {
+                wither.setHealth((float) (finalProgress * wither.getMaxHealth()));
+                final PacketPlayOutEntityMetadata packet = new PacketPlayOutEntityMetadata(
+                        wither.getId(), wither.getDataWatcher(), true);
+                if (Bukkit.isPrimaryThread()) {
+                    sendPacketInternal(player, packet);
+                } else {
+                    final UUID finalUUID = uuid;
+                    Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> {
+                        Player onlinePlayer = Bukkit.getPlayer(finalUUID);
+                        EntityWither currentWither = withers.get(finalUUID);
+                        if (onlinePlayer != null && onlinePlayer.isOnline() && currentWither != null) {
+                            sendPacketInternal(onlinePlayer, packet);
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    public void setTitle(String title) {
+        if (Objects.equals(this.title, title)) return;
+        this.title = title;
+
+        for (UUID uuid : withers.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            EntityWither wither = withers.get(uuid);
+            if (player != null && player.isOnline() && wither != null) {
+                wither.setCustomName(title);
+                final PacketPlayOutEntityMetadata packet = new PacketPlayOutEntityMetadata(wither.getId(), wither.getDataWatcher(), true);
+                if (Bukkit.isPrimaryThread()) {
+                    sendPacketInternal(player, packet);
+                } else {
+                    final UUID finalUUID = uuid;
+                    Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> {
+                        Player onlinePlayer = Bukkit.getPlayer(finalUUID);
+                        EntityWither currentWither = withers.get(finalUUID);
+                        if (onlinePlayer != null && onlinePlayer.isOnline() && currentWither != null) {
+                            sendPacketInternal(onlinePlayer, packet);
+                        }
+                    });
+                }
             }
         }
     }
 
     public void update() {
-        for (Map.Entry<UUID, EntityWither> entry : this.withers.entrySet()) {
-            Player player = Bukkit.getPlayer(entry.getKey());
-            if (player != null && player.isOnline()) {
-                EntityWither entityWither = entry.getValue();
-                Location location = getWitherLocation(player.getLocation());
-                entityWither.setLocation(location.getX(), location.getY(), location.getZ(), 0.0F, 0.0F);
-                PacketPlayOutEntityTeleport packet = new PacketPlayOutEntityTeleport(entityWither);
-                ((CraftPlayer) player).getHandle().playerConnection.sendPacket(packet);
+        for (UUID uuid : withers.keySet()) {
+            Player player = Bukkit.getPlayer(uuid);
+            EntityWither wither = withers.get(uuid);
+            if (player != null && player.isOnline() && wither != null) {
+                updateWitherLocationAndSendPacket(player, wither);
             }
         }
     }
 
     public void update(Player player) {
+        if (player == null) return;
         EntityWither wither = this.withers.get(player.getUniqueId());
-        if (wither == null) {
-            return;
+        if (wither != null) {
+            updateWitherLocationAndSendPacket(player, wither);
         }
+    }
 
+    private void updateWitherLocationAndSendPacket(Player player, EntityWither wither) {
         Location location = getWitherLocation(player.getLocation());
         wither.setLocation(location.getX(), location.getY(), location.getZ(), 0.0F, 0.0F);
         PacketPlayOutEntityTeleport packet = new PacketPlayOutEntityTeleport(wither);
-        ((CraftPlayer) player).getHandle().playerConnection.sendPacket(packet);
+        sendPacketInternal(player, packet);
     }
 
     public Location getWitherLocation(Location location) {
@@ -88,23 +157,7 @@ public class BossBar {
         return this.title;
     }
 
-    public void setTitle(String title) {
-        if (this.title.equals(title)) return;
-        this.title = title;
-        final HashMap<UUID, EntityWither> map = new HashMap<>(this.withers);
-        for (Map.Entry<UUID, EntityWither> entry : map.entrySet()) {
-            Player player = Bukkit.getPlayer(entry.getKey());
-            if (player != null && player.isOnline()) {
-                EntityWither entityWither = entry.getValue();
-                entityWither.setCustomName(title);
-                PacketPlayOutEntityMetadata packet = new PacketPlayOutEntityMetadata(entityWither.getId(), entityWither.getDataWatcher(), true);
-                ((CraftPlayer) player).getHandle().playerConnection
-                        .sendPacket(packet);
-            }
-        }
-    }
-
-    public HashMap<UUID, EntityWither> getWithers() {
+    public ConcurrentHashMap<UUID, EntityWither> getWithers() {
         return this.withers;
     }
 }

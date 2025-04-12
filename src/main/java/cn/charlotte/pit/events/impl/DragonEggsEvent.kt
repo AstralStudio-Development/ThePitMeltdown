@@ -1,7 +1,7 @@
 package cn.charlotte.pit.events.impl
 
 import cn.charlotte.pit.ThePit
-import cn.charlotte.pit.config.NewConfiguration.eventOnlineRequired
+import cn.charlotte.pit.config.NewConfiguration
 import cn.charlotte.pit.data.PlayerProfile
 import cn.charlotte.pit.events.IEvent
 import cn.charlotte.pit.events.INormalEvent
@@ -17,6 +17,7 @@ import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerInteractEvent
 import java.util.*
+import java.util.logging.Level
 
 /**
  * @author Araykal
@@ -29,6 +30,7 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
     private var secondHologram: Hologram? = null
     private var isActive = false
     private var isClick = false
+    private val plugin = ThePit.getInstance()
 
     companion object {
         private const val MAX_CLICKS = 230
@@ -41,10 +43,10 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
 
     override fun getEventName(): String = "&5龙蛋"
 
-    override fun requireOnline(): Int = eventOnlineRequired[eventInternalName]!!
+    override fun requireOnline(): Int = NewConfiguration.eventOnlineRequired[eventInternalName]!!
 
     private fun registerEvents() {
-        Bukkit.getPluginManager().registerEvents(this, ThePit.getInstance())
+        Bukkit.getPluginManager().registerEvents(this, plugin)
     }
 
     private fun unregisterEvents() {
@@ -61,9 +63,9 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
     }
 
     override fun onActive() {
-        eggLocation = ThePit.getInstance().pitConfig.eggLoc ?: run {
+        eggLocation = plugin.pitConfig.eggLoc ?: run {
             Bukkit.broadcastMessage(CC.translate("&5&l龙蛋！ &7活动区域未设置，请联系管理员设置！"))
-            ThePit.getInstance().getEventFactory().inactiveEvent(this)
+            plugin.eventFactory.inactiveEvent(this)
             return
         }
         isActive = true
@@ -72,9 +74,10 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
         CC.boardCast(CC.translate("&5&l龙蛋！ &d龙蛋已在中心点位刷新,请前往点击！"))
         setEggLocation(eggLocation!!)
         playSoundToOnlinePlayers(Sound.ENDERDRAGON_GROWL, 1.5f, 1.5f)
-        Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), {
-            ThePit.getInstance().getEventFactory().inactiveEvent(this)
-            isActive = false
+        Bukkit.getScheduler().runTaskLater(plugin, {
+            if (isActive) {
+                plugin.eventFactory.inactiveEvent(this)
+            }
         }, 8 * 20 * 60)
     }
 
@@ -90,31 +93,41 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
         if (!isActive || event.clickedBlock?.type != Material.DRAGON_EGG) return
         event.isCancelled = true
         if (!isClick) {
-            despawnHolograms()
             return
         }
         val player = event.player
         val p = PlayerProfile.getPlayerProfileByUuid(player.uniqueId)
+        if (p == null || p == PlayerProfile.NONE_PROFILE) {
+            plugin.logger.warning("[DragonEggsEvent] Failed to load profile for ${player.name} on interact.")
+            return
+        }
+
         val random = Random()
         val randomMultiplier = random.nextInt(3) + 1
         val (coins, exp) = when (clicks) {
-            0 -> Pair(3 * randomMultiplier, 3 * (random.nextInt(5) + 1))
+            0 -> Pair(3.0 * randomMultiplier, 3.0 * (random.nextInt(5) + 1))
             else -> Pair(clicks * 0.5 * randomMultiplier, clicks * 0.5 * (random.nextInt(5) + 1))
         }
-        if (clicks <= MAX_CLICKS) {
-            p.coins += coins.toDouble()
-            p.experience += exp.toDouble()
+
+        if (clicks < MAX_CLICKS) {
+            p.coins += coins
+            p.experience += exp
+            p.grindCoins(coins)
+            Bukkit.getScheduler().runTask(plugin) { p.applyExperienceToPlayer(player) }
+            Bukkit.getScheduler().runTaskAsynchronously(plugin) { p.save(null) }
+            player.playSound(player.location, Sound.NOTE_PLING, 1.5f, 1.5f)
+            player.sendMessage(CC.translate("&5&l龙蛋！ &7点击龙蛋 获得 &e${String.format("%.2f", coins)} &6金币 &e${String.format("%.2f", exp)} &b经验&7"))
+            addClicks()
+            handleClickEvents()
+        } else {
+            player.sendMessage(CC.translate("&5&l龙蛋！ &7最大点击次数已达到！"))
         }
-        player.playSound(player.location, Sound.CLICK, 1.5f, 1.5f)
-        player.sendMessage(CC.translate("&5&l龙蛋！ &7点击龙蛋 获得 &e$coins &6金币 &e$exp &b经验&7"))
-        addClicks()
-        handleClickEvents()
     }
 
     private fun handleClickEvents() {
         if (clicks >= MAX_CLICKS) {
-            ThePit.getInstance().getEventFactory().inactiveEvent(this)
-        } else if (clicks % CLICK_THRESHOLD == 0 || clicks + 1 % CLICK_THRESHOLD == 0) {
+            if (isActive) plugin.eventFactory.inactiveEvent(this)
+        } else if (clicks % CLICK_THRESHOLD == 0) {
             isClick = false
             setNewLocation()
         }
@@ -122,10 +135,16 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
 
     private fun setNewLocation() {
         prepareNewLocation()
-        eggLocation?.let { setEggLocation(findRandomLocation(it)) }
-        CC.boardCast("&5&l龙蛋！ &7龙蛋已被移动到了新的位置！")
-        playSoundToOnlinePlayers(Sound.ENDERDRAGON_HIT, 1.5f, 1.5f)
-        isClick = true
+        try {
+            val newLoc = findRandomLocation(eggLocation ?: plugin.pitConfig.eggLoc!!)
+            setEggLocation(newLoc)
+            CC.boardCast("&5&l龙蛋！ &7龙蛋已被移动到了新的位置！")
+            playSoundToOnlinePlayers(Sound.ENDERMAN_TELEPORT, 1.5f, 1.5f)
+            isClick = true
+        } catch (e: Exception) {
+            plugin.logger.log(Level.SEVERE, "[DragonEggsEvent] Failed to find or set new egg location! Ending event.", e)
+            if (isActive) plugin.eventFactory.inactiveEvent(this)
+        }
     }
 
     private fun playSoundToOnlinePlayers(sound: Sound, volume: Float, pitch: Float) {
@@ -135,25 +154,40 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
     }
 
     private fun reCreateHologram(location: Location) {
-        firstHologram = HologramAPI.createHologram(location.block.location.clone().add(0.5, 2.4, 0.5), "§a$clicks")
-        secondHologram = HologramAPI.createHologram(location.block.location.clone().add(0.5, 2.0, 0.5), "§e§l点击")
-        firstHologram!!.spawn()
-        secondHologram!!.spawn()
+        despawnHolograms()
+        try {
+            firstHologram = HologramAPI.createHologram(location.clone().add(0.5, 2.4, 0.5), "§a$clicks")
+            secondHologram = HologramAPI.createHologram(location.clone().add(0.5, 2.0, 0.5), "§e§l点击")
+            firstHologram?.spawn()
+            secondHologram?.spawn()
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] Failed to create holograms", e)
+        }
     }
 
     private fun despawnHolograms() {
-        firstHologram?.deSpawn()
-        secondHologram?.deSpawn()
+        try {
+            firstHologram?.deSpawn()
+            secondHologram?.deSpawn()
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] Error despawning holograms", e)
+        }
         firstHologram = null
         secondHologram = null
     }
 
     private fun addClicks() {
         clicks++
-        firstHologram!!.text = "§a$clicks"
+        try {
+            firstHologram?.text = "§a$clicks"
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] Failed to update hologram text", e)
+        }
     }
 
     override fun onInactive() {
+        if (!isActive) return
+        isActive = false
         unregisterEvents()
         cleanup()
         playSoundToOnlinePlayers(Sound.ENDERDRAGON_DEATH, 1.5f, 1.5f)
@@ -161,24 +195,36 @@ class DragonEggsEvent : IEvent, INormalEvent, Listener {
     }
 
     private fun cleanup() {
-        eggLocation?.block?.type = Material.AIR
+        try {
+            eggLocation?.block?.type = Material.AIR
+        } catch (e: Exception) {
+            plugin.logger.log(Level.WARNING, "[DragonEggsEvent] Error removing dragon egg block", e)
+        }
         despawnHolograms()
-        isActive = false
         eggLocation = null
         clicks = 0
+        isClick = false
     }
 
     private fun findRandomLocation(origin: Location): Location {
         val random = Random()
-        var newLocation: Location
         var attempts = 0
-        while (true) {
-            val x = origin.x + calculateOffset(origin, random)
-            val z = origin.z + calculateOffset(origin, random)
-            newLocation = Location(origin.world, x, origin.y, z)
-            if (newLocation.block.type == Material.AIR || attempts >= MAX_ATTEMPTS) break
+        var newX: Double = origin.x
+        var newZ: Double = origin.z
+        var newLocation: Location
+        val world = origin.world ?: Bukkit.getWorlds().first()
+
+        while (attempts < MAX_ATTEMPTS) {
+            newX = origin.x + calculateOffset(origin, random)
+            newZ = origin.z + calculateOffset(origin, random)
+            newLocation = Location(world, newX, origin.y, newZ)
+
+            if (newLocation.block.type == Material.AIR) {
+                return newLocation
+            }
             attempts++
         }
-        return newLocation
+        plugin.logger.warning("[DragonEggsEvent] Failed to find a suitable AIR location after $MAX_ATTEMPTS attempts. Using last tried location.")
+        return Location(world, newX, origin.y, newZ)
     }
 }

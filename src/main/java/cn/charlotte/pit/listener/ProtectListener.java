@@ -81,7 +81,7 @@ public class ProtectListener implements Listener {
                 return;
             }
 
-            Location location = event.getBlock().getLocation();
+            Location location = event.getBlock().getLocation().clone();
 
             if (location.getBlockY() >= ThePit.getInstance().getPitConfig().getArenaHighestY()) {
                 event.setCancelled(true);
@@ -91,7 +91,7 @@ public class ProtectListener implements Listener {
             for (int i = -3; i < 3; i++) {
                 for (int j = -3; j < 3; j++) {
                     for (int k = -3; k < 3; k++) {
-                        if (location.clone().add(i, j, k).getBlock().getType() == Material.WATER_LILY || location.clone().add(i, j, k).getBlock().getType() == Material.WATER || location.clone().add(i, j, k).getBlock().getType() == Material.STATIONARY_WATER) {
+                        if (location.add(i, j, k).getBlock().getType() == Material.WATER_LILY || location.add(i, j, k).getBlock().getType() == Material.WATER || location.add(i, j, k).getBlock().getType() == Material.STATIONARY_WATER) {
                             event.setCancelled(true);
                             event.getPlayer().sendMessage(CC.translate("&c你无法修改此处方块!"));
                             return;
@@ -177,12 +177,12 @@ public class ProtectListener implements Listener {
                 return;
             }
 
-            Location location = event.getBlockClicked().getLocation();
+            Location location = event.getBlockClicked().getLocation().clone();
 
             for (int i = -3; i < 3; i++) {
                 for (int j = -3; j < 3; j++) {
                     for (int k = -3; k < 3; k++) {
-                        if (location.clone().add(i, j, k).getBlock().getType() == Material.WATER_LILY || location.clone().add(i, j, k).getBlock().getType() == Material.WATER || location.clone().add(i, j, k).getBlock().getType() == Material.STATIONARY_WATER) {
+                        if (location.add(i, j, k).getBlock().getType() == Material.WATER_LILY || location.add(i, j, k).getBlock().getType() == Material.WATER || location.add(i, j, k).getBlock().getType() == Material.STATIONARY_WATER) {
                             event.setCancelled(true);
                             event.getPlayer().sendMessage(CC.translate("&c你无法修改此处方块!"));
                             return;

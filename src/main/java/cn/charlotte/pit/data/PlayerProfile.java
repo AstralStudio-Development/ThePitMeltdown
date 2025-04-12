@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOptions;
+import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -68,6 +69,7 @@ import java.util.concurrent.TimeUnit;
         "bot",
         "lastDamageAt"
 })
+@Data
 public class PlayerProfile {
 
     public final static PlayerProfile NONE_PROFILE = new PlayerProfile(UUID.randomUUID(), "NotLoadPlayer");
@@ -78,141 +80,141 @@ public class PlayerProfile {
     public List<String> claimedMail;
     public PlayerMailData mailData;
     @JsonIgnore
-    private boolean loaded;
-    private String playerName;
-    private String uuid;
-    private String lowerName;
-    private long registerTime;
-    private long lastLoginTime;
-    private long lastLogoutTime;
-    private long totalPlayedTime;
-    private long yearPlayedTime;
-    private long monthPlayedTime;
-    private long weekPlayedTime;
-    private long todayPlayedTime;
-    private int kills;
-    private int assists;
-    private int deaths;
-    private int highestStreaks;
-    private long totalDamage;
-    private long meleeTotalDamage;
-    private long arrowTotalDamage;
-    private long hurtDamage;
-    private long meleeHurtDamage;
-    private long bowHurtDamage;
-    private int meleeAttack;
-    private int shootAttack;
-    private int meleeHit;
-    private int bowHit;
-    private int rodUsed;
-    private int rodHit;
-    private int goldPicked;
-    private int fishingNumber;
-    private int goldenHeadEaten;
-    private double experience;
-    private double coins;
-    private int renown;
-    private int bounty;
-    private int actionBounty;
-    private double respawnTime;
-    private PlayerInv inventory;
-    private PlayerEnderChest enderChest;
-    private int enderChestRow;
+    public boolean loaded;
+    public String playerName;
+    public String uuid;
+    public String lowerName;
+    public long registerTime;
+    public long lastLoginTime;
+    public long lastLogoutTime;
+    public long totalPlayedTime;
+    public long yearPlayedTime;
+    public long monthPlayedTime;
+    public long weekPlayedTime;
+    public long todayPlayedTime;
+    public int kills;
+    public int assists;
+    public int deaths;
+    public int highestStreaks;
+    public long totalDamage;
+    public long meleeTotalDamage;
+    public long arrowTotalDamage;
+    public long hurtDamage;
+    public long meleeHurtDamage;
+    public long bowHurtDamage;
+    public int meleeAttack;
+    public int shootAttack;
+    public int meleeHit;
+    public int bowHit;
+    public int rodUsed;
+    public int rodHit;
+    public int goldPicked;
+    public int fishingNumber;
+    public int goldenHeadEaten;
+    public double experience;
+    public double coins;
+    public int renown;
+    public int bounty;
+    public int actionBounty;
+    public double respawnTime;
+    public PlayerInv inventory;
+    public PlayerEnderChest enderChest;
+    public int enderChestRow;
 
     //每次都遍历查询，效率低下
     //所以专用Map降低大O复杂度
     @Deprecated
     private List<PerkData> unlockedPerk;
-    private Map<String, PerkData> unlockedPerkMap = new HashMap<>();
+    public Map<String, PerkData> unlockedPerkMap = new HashMap<>();
     @Deprecated
-    private List<PerkData> boughtPerk;
-    private Map<String, PerkData> boughtPerkMap = new HashMap<>();
+    public List<PerkData> boughtPerk;
+    public Map<String, PerkData> boughtPerkMap = new HashMap<>();
 
-    private Set<String> usedCdk;
-    private Map<Integer, PerkData> chosePerk;
-    private double totalExp;
-    private List<String> autoBuyButtons;
-    private TradeLimit tradeLimit;
-    private MedalData medalData;
-    private QuestLimit questLimit;
-    private OfferData offerData;
+    public Set<String> usedCdk;
+    public Map<Integer, PerkData> chosePerk;
+    public double totalExp;
+    public List<String> autoBuyButtons;
+    public TradeLimit tradeLimit;
+    public MedalData medalData;
+    public QuestLimit questLimit;
+    public OfferData offerData;
     //累计获得硬币
-    private double grindedCoins;
-    private PlayerOption playerOption;
-    private PlayerBanData playerBanData;
-    private boolean supporter;
-    private boolean supporterGivenByAdmin;
+    public double grindedCoins;
+    public PlayerOption playerOption;
+    public PlayerBanData playerBanData;
+    public boolean supporter;
+    public boolean supporterGivenByAdmin;
     //补偿信息
-    private int remedyLevel;
-    private double remedyExp;
-    private String remedyDate;
-    private int totalFishTimes;
-    private int totalFishTreasureTimes;
-    private int totalFishTrashTimes;
+    public int remedyLevel;
+    public double remedyExp;
+    public String remedyDate;
+    public int totalFishTimes;
+    public int totalFishTreasureTimes;
+    public int totalFishTrashTimes;
     //当前的任务
-    private QuestData currentQuest;
+    public QuestData currentQuest;
     //上一次的任务
-    private QuestData lastQuest;
+    public QuestData lastQuest;
     //是否开启了夜晚任务
-    private boolean nightQuestEnable;
-    private QuestCenter questCenter;
-    private GenesisData genesisData;
-    private List<String> currentQuestList;
-    private double maxHealth;
-    private int foodLevel;
-    private float moveSpeed;
-    private String enchantingItem;
-    private String enchantingScience;
+    public boolean nightQuestEnable;
+    public QuestCenter questCenter;
+    public GenesisData genesisData;
+    public List<String> currentQuestList;
+    public double maxHealth;
+    public int foodLevel;
+    public float moveSpeed;
+    public String enchantingItem;
+    public String enchantingScience;
     //玩家是否在退出其他pit服务器，用于数据保存用，防止产生脏数据
 
-    private String enchantingBook;
-    private boolean login;
-    private WipedData wipedData;
+    public String enchantingBook;
+    public boolean login;
+    public WipedData wipedData;
     //shouldn't save fields
-    private BuffData buffData;
-    private boolean inArena;
-    private double streakKills;
-    private Cooldown combatTimer;
-    private boolean editingMode;
-    private double damageReduced;
-    private Map<UUID, DamageData> damageMap;
-    private int strengthNum;
-    private Cooldown strengthTimer;
-    private UUID lastKilledPlayer;
-    private Cooldown bountyCooldown;
-    private int bountyStreak;
-    private KillRecap killRecap;
-    private boolean screenShare;
-    private String screenShareQQ;
-    private boolean nicked;
-    private int nickPrestige;
-    private int nickLevel;
-    private boolean tempInvUsing;
-    private boolean noDamageAnimations;
-    private double liteStreakKill;
-    private long lastActionTimestamp;
+    public BuffData buffData;
+    public boolean inArena;
+    public double streakKills;
+    public Cooldown combatTimer;
+    public boolean editingMode;
+    public double damageReduced;
+    public Map<UUID, DamageData> damageMap;
+    public int strengthNum;
+    public Cooldown strengthTimer;
+    public UUID lastKilledPlayer;
+    public Cooldown bountyCooldown;
+    public int bountyStreak;
+    public KillRecap killRecap;
+    public boolean screenShare;
+    public String screenShareQQ;
+    public boolean nicked;
+    public int nickPrestige;
+    public int nickLevel;
+    public boolean tempInvUsing;
+    public boolean noDamageAnimations;
+    public double liteStreakKill;
+    public long lastActionTimestamp;
 
-    private double goldStackAddon = 0.0;
-    private double goldStackMax = 0.5;
+    public double goldStackAddon = 0.0;
+    public double goldStackMax = 0.5;
 
-    private double xpStackAddon = 0.0;
-    private double xpStackMax = 1.0;
+    public double xpStackAddon = 0.0;
+    public double xpStackMax = 1.0;
 
-    private List<PlayerInvBackup> invBackups;
+    public List<PlayerInvBackup> invBackups;
 
-    private int todayCompletedUber;
-    private long todayCompletedUberLastRefreshed;
+    public int todayCompletedUber;
+    public long todayCompletedUberLastRefreshed;
 
-    private int profileFormatVersion = 0;
+    public int profileFormatVersion = 0;
 
-    private Cooldown streakCooldown;
-    private int streakCount;
+    public Cooldown streakCooldown;
+    public int streakCount;
 
-    private boolean bot;
+    public boolean bot;
 
-    private long lastDamageAt = -1L;
+    public long lastDamageAt = -1L;
 
-    private HashMap<String, Double> extraMaxHealth = new HashMap<>();
+    public HashMap<String, Double> extraMaxHealth = new HashMap<>();
 
     public KingsQuestsData kingsQuestsData = new KingsQuestsData();
 
@@ -470,7 +472,7 @@ public class PlayerProfile {
 
     public void saveData(Player player) {
         final long now = System.currentTimeMillis();
-        if(player != null){
+        if (player != null){
             this.setInventory(InventoryUtil.playerInventoryFromPlayer(player));
         }
         //if (invBackups.isEmpty() || invBackups.stream().noneMatch(backup -> now - backup.getTimeStamp() < 10 * 60 * 1000)) {
@@ -749,257 +751,9 @@ public class PlayerProfile {
         return streakCount;
     }
 
-    public boolean isLoaded() {
-        return this.loaded;
-    }
-
     @JsonIgnore
     public void setLoaded(boolean loaded) {
         this.loaded = loaded;
-    }
-
-    public String getPlayerName() {
-        return this.playerName;
-    }
-
-    public void setPlayerName(String playerName) {
-        this.playerName = playerName;
-    }
-
-    public String getUuid() {
-        return this.uuid;
-    }
-
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
-    }
-
-    public String getLowerName() {
-        return this.lowerName;
-    }
-
-    public void setLowerName(String lowerName) {
-        this.lowerName = lowerName;
-    }
-
-    public long getRegisterTime() {
-        return this.registerTime;
-    }
-
-    public void setRegisterTime(long registerTime) {
-        this.registerTime = registerTime;
-    }
-
-    public long getLastLoginTime() {
-        return this.lastLoginTime;
-    }
-
-    public void setLastLoginTime(long lastLoginTime) {
-        this.lastLoginTime = lastLoginTime;
-    }
-
-    public long getLastLogoutTime() {
-        return this.lastLogoutTime;
-    }
-
-    public void setLastLogoutTime(long lastLogoutTime) {
-        this.lastLogoutTime = lastLogoutTime;
-    }
-
-    public long getTotalPlayedTime() {
-        return this.totalPlayedTime;
-    }
-
-    public void setTotalPlayedTime(long totalPlayedTime) {
-        this.totalPlayedTime = totalPlayedTime;
-    }
-
-    public long getYearPlayedTime() {
-        return this.yearPlayedTime;
-    }
-
-    public void setYearPlayedTime(long yearPlayedTime) {
-        this.yearPlayedTime = yearPlayedTime;
-    }
-
-    public long getMonthPlayedTime() {
-        return this.monthPlayedTime;
-    }
-
-    public void setMonthPlayedTime(long monthPlayedTime) {
-        this.monthPlayedTime = monthPlayedTime;
-    }
-
-    public long getWeekPlayedTime() {
-        return this.weekPlayedTime;
-    }
-
-    public void setWeekPlayedTime(long weekPlayedTime) {
-        this.weekPlayedTime = weekPlayedTime;
-    }
-
-    public long getTodayPlayedTime() {
-        return this.todayPlayedTime;
-    }
-
-    public void setTodayPlayedTime(long todayPlayedTime) {
-        this.todayPlayedTime = todayPlayedTime;
-    }
-
-    public int getKills() {
-        return this.kills;
-    }
-
-    public void setKills(int kills) {
-        this.kills = kills;
-    }
-
-    public int getAssists() {
-        return this.assists;
-    }
-
-    public void setAssists(int assists) {
-        this.assists = assists;
-    }
-
-    public int getDeaths() {
-        return this.deaths;
-    }
-
-    public void setDeaths(int deaths) {
-        this.deaths = deaths;
-    }
-
-    public int getHighestStreaks() {
-        return this.highestStreaks;
-    }
-
-    public void setHighestStreaks(int highestStreaks) {
-        this.highestStreaks = highestStreaks;
-    }
-
-    public long getTotalDamage() {
-        return this.totalDamage;
-    }
-
-    public void setTotalDamage(long totalDamage) {
-        this.totalDamage = totalDamage;
-    }
-
-    public long getMeleeTotalDamage() {
-        return this.meleeTotalDamage;
-    }
-
-    public void setMeleeTotalDamage(long meleeTotalDamage) {
-        this.meleeTotalDamage = meleeTotalDamage;
-    }
-
-    public long getArrowTotalDamage() {
-        return this.arrowTotalDamage;
-    }
-
-    public void setArrowTotalDamage(long arrowTotalDamage) {
-        this.arrowTotalDamage = arrowTotalDamage;
-    }
-
-    public long getHurtDamage() {
-        return this.hurtDamage;
-    }
-
-    public void setHurtDamage(long hurtDamage) {
-        this.hurtDamage = hurtDamage;
-    }
-
-    public long getMeleeHurtDamage() {
-        return this.meleeHurtDamage;
-    }
-
-    public void setMeleeHurtDamage(long meleeHurtDamage) {
-        this.meleeHurtDamage = meleeHurtDamage;
-    }
-
-    public long getBowHurtDamage() {
-        return this.bowHurtDamage;
-    }
-
-    public void setBowHurtDamage(long bowHurtDamage) {
-        this.bowHurtDamage = bowHurtDamage;
-    }
-
-    public int getMeleeAttack() {
-        return this.meleeAttack;
-    }
-
-    public void setMeleeAttack(int meleeAttack) {
-        this.meleeAttack = meleeAttack;
-    }
-
-    public int getShootAttack() {
-        return this.shootAttack;
-    }
-
-    public void setShootAttack(int shootAttack) {
-        this.shootAttack = shootAttack;
-    }
-
-    public int getMeleeHit() {
-        return this.meleeHit;
-    }
-
-    public void setMeleeHit(int meleeHit) {
-        this.meleeHit = meleeHit;
-    }
-
-    public int getBowHit() {
-        return this.bowHit;
-    }
-
-    public void setBowHit(int bowHit) {
-        this.bowHit = bowHit;
-    }
-
-    public int getRodUsed() {
-        return this.rodUsed;
-    }
-
-    public void setRodUsed(int rodUsed) {
-        this.rodUsed = rodUsed;
-    }
-
-    public int getRodHit() {
-        return this.rodHit;
-    }
-
-    public void setRodHit(int rodHit) {
-        this.rodHit = rodHit;
-    }
-
-    public int getGoldPicked() {
-        return this.goldPicked;
-    }
-
-    public void setGoldPicked(int goldPicked) {
-        this.goldPicked = goldPicked;
-    }
-
-    public int getFishingNumber() {
-        return this.fishingNumber;
-    }
-
-    public void setFishingNumber(int fishingNumber) {
-        this.fishingNumber = fishingNumber;
-    }
-
-    public int getGoldenHeadEaten() {
-        return this.goldenHeadEaten;
-    }
-
-    public void setGoldenHeadEaten(int goldenHeadEaten) {
-        this.goldenHeadEaten = goldenHeadEaten;
-    }
-
-    public double getExperience() {
-        return this.experience;
     }
 
     public void setExperience(double experience) {
@@ -1007,10 +761,6 @@ public class PlayerProfile {
             checkUpdate(experience);
         }
         this.experience = experience;
-    }
-
-    public int getPrestige() {
-        return this.prestige;
     }
 
     public void setPrestige(int prestige) {
@@ -1021,28 +771,12 @@ public class PlayerProfile {
         }
     }
 
-    public double getCoins() {
-        return this.coins;
-    }
-
-    public void setCoins(double coins) {
-        this.coins = coins;
-    }
-
-    public int getRenown() {
-        return this.renown;
-    }
-
     public void setRenown(int renown) {
         final Player player = Bukkit.getPlayer(this.getPlayerUuid());
         if (player != null && renown > this.renown) {
             new PitGainRenownEvent(player, renown - this.renown).callEvent();
         }
         this.renown = renown;
-    }
-
-    public int getBounty() {
-        return this.bounty;
     }
 
     public void setBounty(int bounty) {
@@ -1055,26 +789,6 @@ public class PlayerProfile {
         this.bounty = bounty;
     }
 
-    public int getActionBounty() {
-        return this.actionBounty;
-    }
-
-    public void setActionBounty(int actionBounty) {
-        this.actionBounty = actionBounty;
-    }
-
-    public double getRespawnTime() {
-        return this.respawnTime;
-    }
-
-    public void setRespawnTime(double respawnTime) {
-        this.respawnTime = respawnTime;
-    }
-
-    public PlayerInv getInventory() {
-        return this.inventory;
-    }
-
     public void setInventory(PlayerInv inv) {
         if (this.tempInvUsing) {
             return;
@@ -1083,126 +797,14 @@ public class PlayerProfile {
         this.inventory = inv;
     }
 
-    public PlayerEnderChest getEnderChest() {
-        return this.enderChest;
-    }
-
-    public void setEnderChest(PlayerEnderChest enderChest) {
-        this.enderChest = enderChest;
-    }
-
-    public int getEnderChestRow() {
-        return this.enderChestRow;
-    }
-
-    public void setEnderChestRow(int enderChestRow) {
-        this.enderChestRow = enderChestRow;
-    }
-
     @Deprecated
     public List<PerkData> getUnlockedPerk() {
         return this.unlockedPerk;
     }
 
-    public void setUnlockedPerk(List<PerkData> unlockedPerk) {
-        this.unlockedPerk = unlockedPerk;
-    }
-
     @Deprecated
     public List<PerkData> getBoughtPerk() {
         return this.boughtPerk;
-    }
-
-    public void setBoughtPerk(List<PerkData> boughtPerk) {
-        this.boughtPerk = boughtPerk;
-    }
-
-    public Set<String> getUsedCdk() {
-        return this.usedCdk;
-    }
-
-    public void setUsedCdk(Set<String> usedCdk) {
-        this.usedCdk = usedCdk;
-    }
-
-    public Map<Integer, PerkData> getChosePerk() {
-        return this.chosePerk;
-    }
-
-    public void setChosePerk(Map<Integer, PerkData> chosePerk) {
-        this.chosePerk = chosePerk;
-    }
-
-    public double getTotalExp() {
-        return this.totalExp;
-    }
-
-    public void setTotalExp(double totalExp) {
-        this.totalExp = totalExp;
-    }
-
-    public List<String> getAutoBuyButtons() {
-        return this.autoBuyButtons;
-    }
-
-    public void setAutoBuyButtons(List<String> autoBuyButtons) {
-        this.autoBuyButtons = autoBuyButtons;
-    }
-
-    public TradeLimit getTradeLimit() {
-        return this.tradeLimit;
-    }
-
-    public void setTradeLimit(TradeLimit tradeLimit) {
-        this.tradeLimit = tradeLimit;
-    }
-
-    public MedalData getMedalData() {
-        return this.medalData;
-    }
-
-    public void setMedalData(MedalData medalData) {
-        this.medalData = medalData;
-    }
-
-    public QuestLimit getQuestLimit() {
-        return this.questLimit;
-    }
-
-    public void setQuestLimit(QuestLimit questLimit) {
-        this.questLimit = questLimit;
-    }
-
-    public OfferData getOfferData() {
-        return this.offerData;
-    }
-
-    public void setOfferData(OfferData offerData) {
-        this.offerData = offerData;
-    }
-
-    public double getGrindedCoins() {
-        return this.grindedCoins;
-    }
-
-    public void setGrindedCoins(double grindedCoins) {
-        this.grindedCoins = grindedCoins;
-    }
-
-    public PlayerOption getPlayerOption() {
-        return this.playerOption;
-    }
-
-    public void setPlayerOption(PlayerOption playerOption) {
-        this.playerOption = playerOption;
-    }
-
-    public PlayerBanData getPlayerBanData() {
-        return this.playerBanData;
-    }
-
-    public void setPlayerBanData(PlayerBanData playerBanData) {
-        this.playerBanData = playerBanData;
     }
 
     public boolean isSupporter() {
@@ -1217,190 +819,6 @@ public class PlayerProfile {
         return player.hasPermission(api.getPitSupportPermission());
     }
 
-    public void setSupporter(boolean supporter) {
-        this.supporter = supporter;
-    }
-
-    public boolean isSupporterGivenByAdmin() {
-        return this.supporterGivenByAdmin;
-    }
-
-    public void setSupporterGivenByAdmin(boolean supporterGivenByAdmin) {
-        this.supporterGivenByAdmin = supporterGivenByAdmin;
-    }
-
-    public int getRemedyLevel() {
-        return this.remedyLevel;
-    }
-
-    public void setRemedyLevel(int remedyLevel) {
-        this.remedyLevel = remedyLevel;
-    }
-
-    public double getRemedyExp() {
-        return this.remedyExp;
-    }
-
-    public void setRemedyExp(double remedyExp) {
-        this.remedyExp = remedyExp;
-    }
-
-    public String getRemedyDate() {
-        return this.remedyDate;
-    }
-
-    public void setRemedyDate(String remedyDate) {
-        this.remedyDate = remedyDate;
-    }
-
-    public int getTotalFishTimes() {
-        return this.totalFishTimes;
-    }
-
-    public void setTotalFishTimes(int totalFishTimes) {
-        this.totalFishTimes = totalFishTimes;
-    }
-
-    public int getTotalFishTreasureTimes() {
-        return this.totalFishTreasureTimes;
-    }
-
-    public void setTotalFishTreasureTimes(int totalFishTreasureTimes) {
-        this.totalFishTreasureTimes = totalFishTreasureTimes;
-    }
-
-    public int getTotalFishTrashTimes() {
-        return this.totalFishTrashTimes;
-    }
-
-    public void setTotalFishTrashTimes(int totalFishTrashTimes) {
-        this.totalFishTrashTimes = totalFishTrashTimes;
-    }
-
-    public QuestData getCurrentQuest() {
-        return this.currentQuest;
-    }
-
-    public void setCurrentQuest(QuestData currentQuest) {
-        this.currentQuest = currentQuest;
-    }
-
-    public QuestData getLastQuest() {
-        return this.lastQuest;
-    }
-
-    public void setLastQuest(QuestData lastQuest) {
-        this.lastQuest = lastQuest;
-    }
-
-    public boolean isNightQuestEnable() {
-        return this.nightQuestEnable;
-    }
-
-    public void setNightQuestEnable(boolean nightQuestEnable) {
-        this.nightQuestEnable = nightQuestEnable;
-    }
-
-    public QuestCenter getQuestCenter() {
-        return this.questCenter;
-    }
-
-    public void setQuestCenter(QuestCenter questCenter) {
-        this.questCenter = questCenter;
-    }
-
-    public GenesisData getGenesisData() {
-        return this.genesisData;
-    }
-
-    public void setGenesisData(GenesisData genesisData) {
-        this.genesisData = genesisData;
-    }
-
-    public List<String> getCurrentQuestList() {
-        return this.currentQuestList;
-    }
-
-    public void setCurrentQuestList(List<String> currentQuestList) {
-        this.currentQuestList = currentQuestList;
-    }
-
-    public double getMaxHealth() {
-        return 20.0 + getExtraMaxHealthValue();
-    }
-
-    public void setMaxHealth(double maxHealth) {
-        this.maxHealth = maxHealth;
-    }
-
-    public int getFoodLevel() {
-        return this.foodLevel;
-    }
-
-    public void setFoodLevel(int foodLevel) {
-        this.foodLevel = foodLevel;
-    }
-
-    public float getMoveSpeed() {
-        return this.moveSpeed;
-    }
-
-    public void setMoveSpeed(float moveSpeed) {
-        this.moveSpeed = moveSpeed;
-    }
-
-    public String getEnchantingItem() {
-        return this.enchantingItem;
-    }
-
-    public void setEnchantingItem(String enchantingItem) {
-        this.enchantingItem = enchantingItem;
-    }
-
-    public String getEnchantingScience() {
-        return this.enchantingScience;
-    }
-
-    public void setEnchantingScience(String enchantingScience) {
-        this.enchantingScience = enchantingScience;
-    }
-
-    public boolean isLogin() {
-        return this.login;
-    }
-
-    public void setLogin(boolean login) {
-        this.login = login;
-    }
-
-    public WipedData getWipedData() {
-        return this.wipedData;
-    }
-
-    public void setWipedData(WipedData wipedData) {
-        this.wipedData = wipedData;
-    }
-
-    public List<String> getClaimedMail() {
-        return this.claimedMail;
-    }
-
-    public void setClaimedMail(List<String> claimedMail) {
-        this.claimedMail = claimedMail;
-    }
-
-    public BuffData getBuffData() {
-        return this.buffData;
-    }
-
-    public void setBuffData(BuffData buffData) {
-        this.buffData = buffData;
-    }
-
-    public boolean isInArena() {
-        return this.inArena;
-    }
-
     public void setInArena(boolean inArena) {
         if (inArena && !this.inArena) {
             final Player player = Bukkit.getPlayer(getPlayerUuid());
@@ -1410,10 +828,6 @@ public class PlayerProfile {
         }
 
         this.inArena = inArena;
-    }
-
-    public double getStreakKills() {
-        return this.streakKills;
     }
 
     public void setStreakKills(double kills) {
@@ -1428,262 +842,6 @@ public class PlayerProfile {
         this.streakKills = kills;
     }
 
-    public Cooldown getCombatTimer() {
-        return this.combatTimer;
-    }
-
-    public void setCombatTimer(Cooldown combatTimer) {
-        this.combatTimer = combatTimer;
-    }
-
-    public boolean isEditingMode() {
-        return this.editingMode;
-    }
-
-    public void setEditingMode(boolean editingMode) {
-        this.editingMode = editingMode;
-    }
-
-    public double getDamageReduced() {
-        return this.damageReduced;
-    }
-
-    public void setDamageReduced(double damageReduced) {
-        this.damageReduced = damageReduced;
-    }
-
-    public Map<UUID, DamageData> getDamageMap() {
-        return this.damageMap;
-    }
-
-    public void setDamageMap(Map<UUID, DamageData> damageMap) {
-        this.damageMap = damageMap;
-    }
-
-    public int getStrengthNum() {
-        return this.strengthNum;
-    }
-
-    public void setStrengthNum(int strengthNum) {
-        this.strengthNum = strengthNum;
-    }
-
-    public Cooldown getStrengthTimer() {
-        return this.strengthTimer;
-    }
-
-    public void setStrengthTimer(Cooldown strengthTimer) {
-        this.strengthTimer = strengthTimer;
-    }
-
-    public UUID getLastKilledPlayer() {
-        return this.lastKilledPlayer;
-    }
-
-    public void setLastKilledPlayer(UUID lastKilledPlayer) {
-        this.lastKilledPlayer = lastKilledPlayer;
-    }
-
-    public Cooldown getBountyCooldown() {
-        return this.bountyCooldown;
-    }
-
-    public void setBountyCooldown(Cooldown bountyCooldown) {
-        this.bountyCooldown = bountyCooldown;
-    }
-
-    public int getBountyStreak() {
-        return this.bountyStreak;
-    }
-
-    public void setBountyStreak(int bountyStreak) {
-        this.bountyStreak = bountyStreak;
-    }
-
-    public KillRecap getKillRecap() {
-        return this.killRecap;
-    }
-
-    public void setKillRecap(KillRecap killRecap) {
-        this.killRecap = killRecap;
-    }
-
-    public boolean isScreenShare() {
-        return this.screenShare;
-    }
-
-    public void setScreenShare(boolean screenShare) {
-        this.screenShare = screenShare;
-    }
-
-    public String getScreenShareQQ() {
-        return this.screenShareQQ;
-    }
-
-    public void setScreenShareQQ(String screenShareQQ) {
-        this.screenShareQQ = screenShareQQ;
-    }
-
-    public PlayerMailData getMailData() {
-        return this.mailData;
-    }
-
-    public void setMailData(PlayerMailData mailData) {
-        this.mailData = mailData;
-    }
-
-    public boolean isNicked() {
-        return this.nicked;
-    }
-
-    public void setNicked(boolean nicked) {
-        this.nicked = nicked;
-    }
-
-    public int getNickPrestige() {
-        return this.nickPrestige;
-    }
-
-    public void setNickPrestige(int nickPrestige) {
-        this.nickPrestige = nickPrestige;
-    }
-
-    public int getNickLevel() {
-        return this.nickLevel;
-    }
-
-    public void setNickLevel(int nickLevel) {
-        this.nickLevel = nickLevel;
-    }
-
-    public boolean isTempInvUsing() {
-        return this.tempInvUsing;
-    }
-
-    public void setTempInvUsing(boolean tempInvUsing) {
-        this.tempInvUsing = tempInvUsing;
-    }
-
-    public boolean isNoDamageAnimations() {
-        return this.noDamageAnimations;
-    }
-
-    public void setNoDamageAnimations(boolean noDamageAnimations) {
-        this.noDamageAnimations = noDamageAnimations;
-    }
-
-    public double getLiteStreakKill() {
-        return this.liteStreakKill;
-    }
-
-    public void setLiteStreakKill(double liteStreakKill) {
-        this.liteStreakKill = liteStreakKill;
-    }
-
-    public long getLastActionTimestamp() {
-        return this.lastActionTimestamp;
-    }
-
-    public void setLastActionTimestamp(long lastActionTimestamp) {
-        this.lastActionTimestamp = lastActionTimestamp;
-    }
-
-    public List<PlayerInvBackup> getInvBackups() {
-        return this.invBackups;
-    }
-
-    public void setInvBackups(List<PlayerInvBackup> invBackups) {
-        this.invBackups = invBackups;
-    }
-
-    public double getGoldStackAddon() {
-        return goldStackAddon;
-    }
-
-    public void setGoldStackAddon(double goldStackAddon) {
-        this.goldStackAddon = goldStackAddon;
-    }
-
-    public double getGoldStackMax() {
-        return goldStackMax;
-    }
-
-    public void setGoldStackMax(double goldStackMax) {
-        this.goldStackMax = goldStackMax;
-    }
-
-    public double getXpStackAddon() {
-        return xpStackAddon;
-    }
-
-    public void setXpStackAddon(double xpStackAddon) {
-        this.xpStackAddon = xpStackAddon;
-    }
-
-    public double getXpStackMax() {
-        return xpStackMax;
-    }
-
-    public void setXpStackMax(double xpStackMax) {
-        this.xpStackMax = xpStackMax;
-    }
-
-    public int getTodayCompletedUber() {
-        return todayCompletedUber;
-    }
-
-    public void setTodayCompletedUber(int todayCompletedUber) {
-        this.todayCompletedUber = todayCompletedUber;
-    }
-
-    public long getTodayCompletedUberLastRefreshed() {
-        return todayCompletedUberLastRefreshed;
-    }
-
-    public void setTodayCompletedUberLastRefreshed(long todayCompletedUberLastRefreshed) {
-        this.todayCompletedUberLastRefreshed = todayCompletedUberLastRefreshed;
-    }
-
-    public Cooldown getStreakCooldown() {
-        return streakCooldown;
-    }
-
-    public void setStreakCooldown(Cooldown streakCooldown) {
-        this.streakCooldown = streakCooldown;
-    }
-
-    public int getStreakCount() {
-        return streakCount;
-    }
-
-    public void setStreakCount(int streakCount) {
-        this.streakCount = streakCount;
-    }
-
-    public boolean isBot() {
-        return bot;
-    }
-
-    public void setBot(boolean bot) {
-        this.bot = bot;
-    }
-
-    public long getLastDamageAt() {
-        return lastDamageAt;
-    }
-
-    public void setLastDamageAt(long lastDamageAt) {
-        this.lastDamageAt = lastDamageAt;
-    }
-
-    public HashMap<String, Double> getExtraMaxHealth() {
-        return extraMaxHealth;
-    }
-
-    public void setExtraMaxHealth(HashMap<String, Double> extraMaxHealth) {
-        this.extraMaxHealth = extraMaxHealth;
-    }
-
     public double getExtraMaxHealthValue() {
         return extraMaxHealth
                 .values()
@@ -1692,35 +850,11 @@ public class PlayerProfile {
                 .sum();
     }
 
-    public String getEnchantingBook() {
-        return enchantingBook;
+    public boolean isInArena() {
+        return inArena;
     }
 
-    public void setEnchantingBook(String enchantingBook) {
-        this.enchantingBook = enchantingBook;
-    }
-
-    public Map<String, PerkData> getUnlockedPerkMap() {
-        return unlockedPerkMap;
-    }
-
-    public Map<String, PerkData> getBoughtPerkMap() {
-        return boughtPerkMap;
-    }
-
-    public void setUnlockedPerkMap(Map<String, PerkData> unlockedPerkMap) {
-        this.unlockedPerkMap = unlockedPerkMap;
-    }
-
-    public void setBoughtPerkMap(Map<String, PerkData> boughtPerkMap) {
-        this.boughtPerkMap = boughtPerkMap;
-    }
-
-    public int getProfileFormatVersion() {
-        return profileFormatVersion;
-    }
-
-    public void setProfileFormatVersion(int profileFormatVersion) {
-        this.profileFormatVersion = profileFormatVersion;
+    public boolean isLoaded() {
+        return loaded;
     }
 }

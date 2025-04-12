@@ -3,16 +3,18 @@ package cn.charlotte.pit.util.menu;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.UUID;
+
 public class MenuUpdateTask implements Runnable {
 
     @Override
     public void run() {
-        Menu.currentlyOpenedMenus.forEach((key, value) -> {
-            final Player player = Bukkit.getPlayer(key);
+        Menu.currentlyOpenedMenus.forEach((uuid, menu) -> {
+            final Player player = Bukkit.getPlayer(uuid);
 
-            if (player != null) {
-                if (value.isAutoUpdate()) {
-                    value.openMenu(player);
+            if (player != null && player.isOnline()) {
+                if (menu.isAutoUpdate()) {
+                    menu.openMenu(player);
                 }
             }
         });

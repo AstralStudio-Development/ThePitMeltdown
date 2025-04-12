@@ -16,12 +16,12 @@ class KingsQuestsData {
 
     fun checkUpdate() {
         if (currentKingQuestsUuid == null) {
-            currentKingQuestsUuid = ThePit.getApi().runningKingsQuestsUuid
+            currentKingQuestsUuid = ThePit.api.runningKingsQuestsUuid
             return
         }
 
-        if (currentKingQuestsUuid != ThePit.getApi().runningKingsQuestsUuid) {
-            currentKingQuestsUuid = ThePit.getApi().runningKingsQuestsUuid
+        if (currentKingQuestsUuid != ThePit.api.runningKingsQuestsUuid) {
+            currentKingQuestsUuid = ThePit.api.runningKingsQuestsUuid
             accepted = false
             completed = false
             killedPlayer = 0

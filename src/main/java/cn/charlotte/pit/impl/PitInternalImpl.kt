@@ -220,18 +220,25 @@ object PitInternalImpl : PitInternalHook {
 
     override fun reformatPitItem(itemStack: ItemStack?): ItemStack? {
         val internalName = ItemUtil.getInternalName(itemStack)
-        val item = if ("mythic_sword" == internalName) {
-            MythicSwordItem()
-        } else if ("mythic_bow" == internalName) {
-            MythicBowItem()
-        } else if ("mythic_leggings" == internalName) {
-            MythicLeggingsItem()
-        } else if ("angel_chestplate" == internalName) {
-            AngelChestplate()
-        } else if ("armageddon_boots" == internalName) {
-            ArmageddonBoots()
-        } else {
-            return itemStack
+        val item = when (internalName) {
+            "mythic_sword" -> {
+                MythicSwordItem()
+            }
+            "mythic_bow" -> {
+                MythicBowItem()
+            }
+            "mythic_leggings" -> {
+                MythicLeggingsItem()
+            }
+            "angel_chestplate" -> {
+                AngelChestplate()
+            }
+            "armageddon_boots" -> {
+                ArmageddonBoots()
+            }
+            else -> {
+                return itemStack
+            }
         }
 
         item.loadFromItemStack(itemStack)

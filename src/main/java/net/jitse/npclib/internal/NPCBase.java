@@ -87,6 +87,8 @@ public abstract class NPCBase implements NPC, NPCPacketHandler {
 
         if (text == null) {
             playerText.remove(player.getUniqueId());
+            return this;
+
         } else playerText.put(player.getUniqueId(), text);
 
         if (originalText.size() != text.size()) { // recreate the entire hologram

@@ -20,7 +20,7 @@ repositories {
     maven("https://repo.rosewooddev.io/repository/public/")
     maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
     maven("https://repo.panda-lang.org/releases")
-    mavenLocal()
+    //mavenLocal()
 }
 
 dependencies {
@@ -36,10 +36,13 @@ dependencies {
     api(libs.slf4j)
     api(libs.reflectionhelper)
 
-    implementation(files("lib/Magenpurp.jar"))
+    //implementation(files("lib/Magenpurp.jar"))
 
     compileOnly(libs.narshorn)
     compileOnly(libs.decentholograms)
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
+
     //compileOnly(libs.papi)
 }
 
@@ -55,11 +58,21 @@ tasks.build {
 
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
+    sourceCompatibility = JavaVersion.VERSION_11.toString()
+    targetCompatibility = JavaVersion.VERSION_11.toString()
 }
 
 tasks.withType<Javadoc> {
     options.encoding = "UTF-8"
 }
+
 kotlin {
     jvmToolchain(11)
+    target {
+        compilations.all {
+            kotlinOptions {
+                jvmTarget = "11"
+            }
+        }
+    }
 }

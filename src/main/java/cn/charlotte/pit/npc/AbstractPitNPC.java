@@ -1,6 +1,8 @@
 package cn.charlotte.pit.npc;
 
 import cn.charlotte.pit.util.chat.CC;
+import lombok.Getter;
+import lombok.Setter;
 import net.jitse.npclib.api.NPC;
 import net.jitse.npclib.api.skin.Skin;
 import org.bukkit.Location;
@@ -9,12 +11,15 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @Author: EmptyIrony
  * @Date: 2020/12/30 22:35
  */
 public abstract class AbstractPitNPC {
+    @Getter
+    @Setter
     private NPC npc;
 
     //NPC 内部名称
@@ -24,13 +29,7 @@ public abstract class AbstractPitNPC {
     public abstract List<String> getNpcDisplayName(Player player);
 
     public List<String> getNpcTextLine(Player player) {
-        List<String> displayName = this.getNpcDisplayName(player);
-        List<String> text = new ArrayList<>();
-        for (String s : displayName) {
-            text.add(CC.translate(s));
-        }
-
-        return text;
+        return this.getNpcDisplayName(player).stream().map(CC::translate).collect(Collectors.toList());
     }
 
     //NPC 生成位置
@@ -44,14 +43,6 @@ public abstract class AbstractPitNPC {
 
     //npc 手持物品
     public abstract ItemStack getNpcHeldItem();
-
-    public NPC getNpc() {
-        return this.npc;
-    }
-
-    public void setNpc(NPC npc) {
-        this.npc = npc;
-    }
 
     public abstract void initSkin(NPC npc);
 }

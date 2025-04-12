@@ -26,6 +26,7 @@ playerpoints = "3.2.4"
 decentholograms = "2.8.6"
 hutool = "5.8.27"
 litecommands = "3.4.1"
+lombok = "1.18.38"
 [libraries]
 
 # Adventure
@@ -64,6 +65,7 @@ luckperms = { group = "net.luckperms", name = "api", version.ref = "luckperms" }
 
 moshi = { group = "com.squareup.moshi", name = "moshi", version.ref = "moshi" }
 
+lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
 
 ### thepit premiunm
 papi = { group = "me.clip", name = "placeholderapi", version.ref = "papi" }

@@ -3,7 +3,6 @@ package cn.charlotte.pit.listener;
 import cn.charlotte.pit.ThePit;
 import cn.charlotte.pit.config.NewConfiguration;
 import cn.charlotte.pit.data.PlayerProfile;
-import cn.charlotte.pit.data.sub.KillRecap;
 import cn.charlotte.pit.data.sub.QuestData;
 import cn.charlotte.pit.enchantment.AbstractEnchantment;
 import cn.charlotte.pit.enchantment.EnchantmentFactor;
@@ -12,13 +11,10 @@ import cn.charlotte.pit.enchantment.param.event.PlayerOnly;
 import cn.charlotte.pit.enchantment.rarity.EnchantmentRarity;
 import cn.charlotte.pit.event.OriginalTimeChangeEvent;
 import cn.charlotte.pit.event.PitDamageEvent;
-import cn.charlotte.pit.event.PitDamagePlayerEvent;
 import cn.charlotte.pit.events.EventFactory;
 import cn.charlotte.pit.game.Game;
 import cn.charlotte.pit.parm.AutoRegister;
 import cn.charlotte.pit.parm.listener.*;
-import cn.charlotte.pit.parm.type.BowOnly;
-import cn.charlotte.pit.parm.type.ThrowOnly;
 import cn.charlotte.pit.perk.AbstractPerk;
 import cn.charlotte.pit.perk.PerkFactory;
 import cn.charlotte.pit.quest.AbstractQuest;
@@ -39,7 +35,6 @@ import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -54,8 +49,8 @@ import org.bukkit.metadata.MetadataValue;
 import java.lang.reflect.Method;
 import java.text.DecimalFormat;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 /**
  * @Author: EmptyIrony
@@ -166,268 +161,233 @@ public class GameEffectListener implements Listener {
         CC.boardCast("Time change to: " + event.getTime());
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     public void onPlayerDamagePlayer(EntityDamageByEntityEvent event) {
-        if (event.getDamager() instanceof Player) {
-            //修正伤害
-            final Player attacker = (Player) event.getDamager();
-            if (attacker.getItemInHand() == null || attacker.getItemInHand().getType() == Material.AIR || attacker.getItemInHand().getType() == Material.FISHING_ROD) {
-                event.setDamage(1);
+        Entity victimEntity = event.getEntity();
+        Entity damagerEntity = event.getDamager();
+        Player attacker;
+        Player victim;
+        Arrow arrow = null;
+        boolean melee = false;
+        boolean bow = false;
+
+        if (!(victimEntity instanceof Player)) return;
+        victim = (Player) victimEntity;
+
+        if (damagerEntity instanceof Player) {
+            attacker = (Player) damagerEntity;
+            melee = true;
+        } else if (damagerEntity instanceof Arrow) {
+            arrow = (Arrow) damagerEntity;
+            if (arrow.getShooter() instanceof Player) {
+                attacker = (Player) arrow.getShooter();
+                bow = true;
             } else {
-                final EntityPlayer entityPlayer = ((CraftPlayer) attacker).getHandle();
-                float f = (float) entityPlayer.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
-                if (f > 9) {
-                    event.setDamage(0);
-                }
+                return;
             }
+        } else {
+            return;
         }
 
-
-        PerkFactory perkFactory = ThePit.getInstance()
-                .getPerkFactory();
-
+        PerkFactory perkFactory = ThePit.getInstance().getPerkFactory();
         EventFactory eventFactory = ThePit.getInstance().getEventFactory();
         EnchantmentFactor enchantmentFactor = ThePit.getInstance().getEnchantmentFactor();
         QuestFactory questFactory = ThePit.getInstance().getQuestFactory();
+        Game game = ThePit.getInstance().getGame();
 
-        AtomicDouble finalDamage = new AtomicDouble(0);
-        AtomicDouble boostDamage = new AtomicDouble(1);
+        PlayerProfile attackerProfile = PlayerProfile.getPlayerProfileByUuid(attacker.getUniqueId());
+        PlayerProfile victimProfile = PlayerProfile.getPlayerProfileByUuid(victim.getUniqueId());
+        if (attackerProfile == null || victimProfile == null) {
+            ThePit.getInstance().getLogger().warning("[GameEffectListener] Attacker or Victim profile is null! Att: " + attacker.getName() + " Vic: " + victim.getName());
+            return;
+        }
+
+        boolean attackerIsSomber = PlayerUtil.isEquippingSomber(attacker);
+        boolean victimIsSomber = PlayerUtil.isEquippingSomber(victim);
+        boolean ignoreAttackerStandardEnchants = PlayerUtil.shouldIgnoreEnchant(attacker) || PlayerUtil.shouldIgnoreEnchant(attacker, victim);
+        boolean ignoreVictimStandardEnchants = PlayerUtil.shouldIgnoreEnchant(victim) || PlayerUtil.shouldIgnoreEnchant(victim, attacker);
+        boolean attackerHasComboVenom = false;
+        if (attacker.hasMetadata("combo_venom")) {
+            List<MetadataValue> meta = attacker.getMetadata("combo_venom");
+            if (!meta.isEmpty()) {
+                attackerHasComboVenom = meta.get(0).asLong() > System.currentTimeMillis();
+            }
+        }
+
+        AtomicDouble finalDamageAdditive = new AtomicDouble(0.0);
+        AtomicDouble boostDamageMultiplier = new AtomicDouble(1.0);
         AtomicBoolean cancel = new AtomicBoolean(false);
-        Player damager = null;
+        double currentDamage = event.getDamage();
 
-        final Game game = ThePit.getInstance().getGame();
-
-        if (event.getDamager() instanceof Player) {
-            damager = (Player) event.getDamager();
-
-            PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(damager.getUniqueId());
-            if (NewConfiguration.INSTANCE.getNoobProtect() && profile.getPrestige() <= 0 && profile.getLevel() < NewConfiguration.INSTANCE.getNoobProtectLevel()) {
-                boostDamage.getAndAdd(NewConfiguration.INSTANCE.getNoobDamageBoost() - 1);
-            }
-
-            //perk handler
-            for (IAttackEntity ins : perkFactory.getAttackEntities()) {
-                AbstractPerk perk = (AbstractPerk) ins;
-                if (game.getDisabledPerks().stream().anyMatch(ignoredPerk -> ignoredPerk.getInternalPerkName().equals(perk.getInternalPerkName()))) {
-                    continue;
-                }
-                int level = perk.getPlayerLevel(damager);
-                processAttackEntity(ins, level, damager, event.getEntity(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-            }
-
-
-
-            //enchant handler
-            //we should check has somber enchant on leggings
-            boolean somberFound = PlayerUtil.isEquippingSomber(damager);
-
-            if (!somberFound && event.getEntity() instanceof Player) {
-                somberFound = PlayerUtil.isEquippingSomber((Player) event.getEntity());
-            }
-
-            //checking damager has marked combo venom?
-            boolean comboVenomFound = false;
-            if (damager.hasMetadata("combo_venom")) {
-                if (damager.getMetadata("combo_venom").get(0).asLong() > System.currentTimeMillis()) {
-                    comboVenomFound = true;
+        if (melee) {
+            if (attacker.getItemInHand() == null || attacker.getItemInHand().getType() == Material.AIR || attacker.getItemInHand().getType() == Material.FISHING_ROD) {
+                currentDamage = 1.0;
+            } else {
+                try {
+                    final EntityPlayer entityPlayer = ((CraftPlayer) attacker).getHandle();
+                    float baseAttack = (float) entityPlayer.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
+                    if (baseAttack > 9) {
+                        currentDamage = 0.0;
+                    }
+                } catch (Exception e) {
+                    ThePit.getInstance().getLogger().log(Level.WARNING, "[GameEffectListener] Error checking NMS attack damage for " + attacker.getName(), e);
                 }
             }
-            PlayerProfile damagerProfile = PlayerProfile.getPlayerProfileByUuid(damager.getUniqueId());
+        }
+        if (NewConfiguration.INSTANCE.getNoobProtect() && attackerProfile.getPrestige() <= 0 && attackerProfile.getLevel() < NewConfiguration.INSTANCE.getNoobProtectLevel()) {
+            boostDamageMultiplier.getAndAdd(NewConfiguration.INSTANCE.getNoobDamageBoost() - 1.0);
+        }
+        if (NewConfiguration.INSTANCE.getNoobProtect() && victimProfile.getPrestige() <= 0 && victimProfile.getLevel() < NewConfiguration.INSTANCE.getNoobProtectLevel()) {
+            boostDamageMultiplier.getAndAdd(NewConfiguration.INSTANCE.getNoobDamageReduce() - 1.0);
+        }
 
-            //if found, dont process enchant
+        if (PlayerUtil.isEquippingAngelChestplate(victim)) {
+            boostDamageMultiplier.getAndAdd(-0.1);
+        }
 
+        for (IAttackEntity ins : perkFactory.getAttackEntities()) {
+            AbstractPerk perk = (AbstractPerk) ins;
+            if (game.getDisabledPerks().stream().anyMatch(p -> p.getInternalPerkName().equals(perk.getInternalPerkName())))
+                continue;
+            int level = perk.getPlayerLevel(attacker);
+            processAttackEntity(ins, level, attacker, victim, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+            if (cancel.get()) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+        for (IAttackEntity ins : questFactory.getAttackEntities()) {
+            AbstractQuest quest = (AbstractQuest) ins;
+            QuestData currentQuest = attackerProfile.getCurrentQuest();
+            if (currentQuest != null && currentQuest.getInternalName().equals(quest.getQuestInternalName())) {
+                processAttackEntity(ins, currentQuest.getLevel(), attacker, victim, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                if (cancel.get()) {
+                    event.setCancelled(true);
+                    return;
+                }
+            }
+        }
+        if (!attackerIsSomber && !victimIsSomber && !attackerHasComboVenom && !ignoreAttackerStandardEnchants) {
+            ItemStack mainHand = attacker.getItemInHand();
+            ItemStack leggings = attacker.getInventory().getLeggings();
             for (IAttackEntity ins : enchantmentFactor.getAttackEntities()) {
                 AbstractEnchantment enchant = (AbstractEnchantment) ins;
-                if ((PlayerUtil.shouldIgnoreEnchant(damager) || (event.getEntity() instanceof Player && PlayerUtil.shouldIgnoreEnchant(damager, (Player) event.getEntity()))) && (enchant.getRarity() != EnchantmentRarity.DARK_NORMAL && enchant.getRarity() != EnchantmentRarity.DARK_RARE)) {
+                if (enchant.getRarity() == EnchantmentRarity.DARK_NORMAL || enchant.getRarity() == EnchantmentRarity.DARK_RARE)
                     continue;
-                }
-
-                int level = enchant.getItemEnchantLevel(damager.getItemInHand());
-                if (damager.getItemInHand() != null && damager.getItemInHand().getType() != Material.AIR && damager.getItemInHand().getType() != Material.LEATHER_LEGGINGS) {
-                    processAttackEntity(ins, level, damager, event.getEntity(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-                }
-                if (damager.getInventory().getLeggings() != null && damager.getInventory().getLeggings().getType() != Material.AIR) {
-                    level = enchant.getItemEnchantLevel(damager.getInventory().getLeggings());
-                    processAttackEntity(ins, level, damager, event.getEntity(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-                }
-            }
-
-
-            for (IAttackEntity ins : questFactory.getAttackEntities()) {
-                AbstractQuest quest = (AbstractQuest) ins;
-                QuestData currentQuest = profile.getCurrentQuest();
-                if (currentQuest != null && currentQuest.getInternalName().equals(quest.getQuestInternalName())) {
-                    processAttackEntity(ins, currentQuest.getLevel(), damager, event.getEntity(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-                }
-            }
-        } else if (event.getDamager() instanceof Projectile && ((Projectile) event.getDamager()).getShooter() instanceof Player) {
-            damager = (Player) (((Projectile) event.getDamager()).getShooter());
-            PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(damager.getUniqueId());
-
-            if (NewConfiguration.INSTANCE.getNoobProtect() && profile.getPrestige() <= 0 && profile.getLevel() < NewConfiguration.INSTANCE.getNoobProtectLevel()) {
-                boostDamage.getAndAdd(NewConfiguration.INSTANCE.getNoobDamageBoost() - 1);
-            }
-
-            for (IPlayerShootEntity ins : perkFactory.getPlayerShootEntities()) {
-                AbstractPerk perk = (AbstractPerk) ins;
-                int level = perk.getPlayerLevel(damager);
-                processShootEntity(ins, level, damager, event.getEntity(), event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-            }
-
-            //enchant handler
-            //we should check has somber enchant on leggings
-            boolean somberFound = PlayerUtil.isEquippingSomber(damager);
-            if (!somberFound && event.getEntity() instanceof Player) {
-                somberFound = PlayerUtil.isEquippingSomber((Player) event.getEntity());
-            }
-            //checking damager has marked combo venom?
-            boolean comboVenomFound = false;
-            if (damager.getMetadata("combo_venom") != null) {
-                final long now = System.currentTimeMillis();
-                final List<MetadataValue> metadata = damager.getMetadata("combo_venom");
-                final Optional<MetadataValue> first = metadata.stream()
-                        .filter(metadataValue -> metadataValue.getOwningPlugin() instanceof ThePit && now <= metadataValue.asLong())
-                        .findFirst();
-                if (first.isPresent()) {
-                    comboVenomFound = true;
-                }
-            }
-            //if found, dont process enchant
-
-            final Projectile projectile = (Projectile) event.getDamager();
-            if (projectile.hasMetadata("enchant")) {
-                final MetadataValue value = projectile.getMetadata("enchant").get(0);
-                final String enchants = value.asString();
-                final String[] split = enchants.split(";");
-                for (String enchantStr : split) {
-                    final String[] enchStr = enchantStr.split(":");
-                    final String enchantName = enchStr[0];
-                    final int enchantValue = Integer.parseInt(enchStr[1]);
-
-                    final AbstractEnchantment enchantment = enchantmentFactor.getEnchantmentMap().get(enchantName);
-
-                    if ((PlayerUtil.shouldIgnoreEnchant(damager) || (event.getEntity() instanceof Player && PlayerUtil.shouldIgnoreEnchant(damager, (Player) event.getEntity()))) && (enchantment.getRarity() != EnchantmentRarity.DARK_NORMAL && enchantment.getRarity() != EnchantmentRarity.DARK_RARE)) {
-                        continue;
+                int level;
+                if (melee) {
+                    if (mainHand != null && mainHand.getType() != Material.AIR && mainHand.getType() != Material.LEATHER_LEGGINGS) {
+                        level = enchant.getItemEnchantLevel(mainHand);
+                        processAttackEntity(ins, level, attacker, victim, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                        if (cancel.get()) {
+                            event.setCancelled(true);
+                            return;
+                        }
                     }
-
-                    this.processShootEntity((IPlayerShootEntity) enchantment, enchantValue, damager, event.getEntity(), event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-                }
-            }
-
-
-            for (IPlayerShootEntity ins : questFactory.getPlayerShootEntities()) {
-                AbstractQuest quest = (AbstractQuest) ins;
-                QuestData currentQuest = profile.getCurrentQuest();
-                if (currentQuest != null && currentQuest.getInternalName().equals(quest.getQuestInternalName())) {
-                    processShootEntity(ins, currentQuest.getLevel(), damager, event.getEntity(), event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
+                    if (leggings != null && leggings.getType() != Material.AIR) {
+                        level = enchant.getItemEnchantLevel(leggings);
+                        processAttackEntity(ins, level, attacker, victim, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                        if (cancel.get()) {
+                            event.setCancelled(true);
+                            return;
+                        }
+                    }
                 }
             }
         }
 
-        if (event.getEntity() instanceof Player) {
-
-            Player player = (Player) event.getEntity();
-            PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(event.getEntity().getUniqueId());
-
-            if (NewConfiguration.INSTANCE.getNoobProtect() && profile.getPrestige() <= 0 && profile.getLevel() < NewConfiguration.INSTANCE.getNoobProtectLevel()) {
-                boostDamage.getAndAdd(NewConfiguration.INSTANCE.getNoobDamageReduce() - 1);
+        for (IPlayerDamaged ins : perkFactory.getPlayerDamageds()) {
+            AbstractPerk perk = (AbstractPerk) ins;
+            if (game.getDisabledPerks().stream().anyMatch(p -> p.getInternalPerkName().equals(perk.getInternalPerkName())))
+                continue;
+            int level = perk.getPlayerLevel(victim);
+            processPlayerDamaged(ins, level, victim, attacker, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+            if (cancel.get()) {
+                event.setCancelled(true);
+                return;
             }
-
-            if (PlayerUtil.isEquippingAngelChestplate(player)) {
-                boostDamage.getAndAdd(-0.1);
+        }
+        for (IPlayerDamaged ins : questFactory.getPlayerDamageds()) {
+            AbstractQuest quest = (AbstractQuest) ins;
+            QuestData currentQuest = victimProfile.getCurrentQuest();
+            if (currentQuest != null && currentQuest.getInternalName().equals(quest.getQuestInternalName())) {
+                processPlayerDamaged(ins, currentQuest.getLevel(), victim, attacker, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                if (cancel.get()) {
+                    event.setCancelled(true);
+                    return;
+                }
             }
-
-            if (event.getDamager() instanceof Player) {
-                damager = (Player) event.getDamager();
-                for (IPlayerDamaged ins : perkFactory.getPlayerDamageds()) {
-                    AbstractPerk perk = (AbstractPerk) ins;
-                    if (game.getDisabledPerks().stream().anyMatch(ignoredPerk -> ignoredPerk.getInternalPerkName().equals(perk.getInternalPerkName()))) {
-                        continue;
-                    }
-                    int level = perk.getPlayerLevel(player);
-                    processPlayerDamaged(ins, level, player, event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-                }
-
-                //enchant handler
-                //we should check has somber enchant on leggings
-                boolean somberFound = PlayerUtil.isEquippingSomber(damager);
-
-                if (!somberFound && event.getEntity() instanceof Player) {
-                    somberFound = PlayerUtil.isEquippingSomber((Player) event.getEntity());
-                }
-
-                //if found, dont process enchant
-
-                for (IPlayerDamaged ins : enchantmentFactor.getPlayerDamageds()) {
-                    AbstractEnchantment enchant = (AbstractEnchantment) ins;
-
-                    if ((PlayerUtil.shouldIgnoreEnchant(damager) || (event.getEntity() instanceof Player && PlayerUtil.shouldIgnoreEnchant(damager, (Player) event.getEntity()))) && (enchant.getRarity() != EnchantmentRarity.DARK_NORMAL && enchant.getRarity() != EnchantmentRarity.DARK_RARE)) {
-                        continue;
-                    }
-
-                    //当神话之甲手持时不应该触发附魔
-                    int level = enchant.getItemEnchantLevel(player.getItemInHand());
-                    if (player.getItemInHand() != null && player.getItemInHand().getType() != Material.AIR && player.getItemInHand().getType() != Material.LEATHER_LEGGINGS) {
-                        processPlayerDamaged(ins, level, player, event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-                    }
-                    if (player.getInventory().getLeggings() != null && player.getInventory().getLeggings().getType() != Material.AIR) {
-                        level = enchant.getItemEnchantLevel(player.getInventory().getLeggings());
-                        processPlayerDamaged(ins, level, player, event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
+        }
+        if (!attackerIsSomber && !victimIsSomber && !attackerHasComboVenom && !ignoreVictimStandardEnchants) {
+            ItemStack victimMainHand = victim.getItemInHand();
+            ItemStack victimLeggings = victim.getInventory().getLeggings();
+            for (IPlayerDamaged ins : enchantmentFactor.getPlayerDamageds()) {
+                AbstractEnchantment enchant = (AbstractEnchantment) ins;
+                if (enchant.getRarity() == EnchantmentRarity.DARK_NORMAL || enchant.getRarity() == EnchantmentRarity.DARK_RARE)
+                    continue;
+                int level;
+                if (victimMainHand != null && victimMainHand.getType() != Material.AIR && victimMainHand.getType() != Material.LEATHER_LEGGINGS) {
+                    level = enchant.getItemEnchantLevel(victimMainHand);
+                    processPlayerDamaged(ins, level, victim, attacker, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                    if (cancel.get()) {
+                        event.setCancelled(true);
+                        return;
                     }
                 }
-
-
-                for (IPlayerDamaged ins : questFactory.getPlayerDamageds()) {
-                    AbstractQuest quest = (AbstractQuest) ins;
-                    QuestData currentQuest = profile.getCurrentQuest();
-                    if (currentQuest != null && currentQuest.getInternalName().equals(quest.getQuestInternalName())) {
-                        processPlayerDamaged(ins, currentQuest.getLevel(), player, event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
+                if (victimLeggings != null && victimLeggings.getType() != Material.AIR) {
+                    level = enchant.getItemEnchantLevel(victimLeggings);
+                    processPlayerDamaged(ins, level, victim, attacker, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                    if (cancel.get()) {
+                        event.setCancelled(true);
+                        return;
                     }
                 }
-            } else if (event.getDamager() instanceof Projectile && ((Projectile) event.getDamager()).getShooter() instanceof Player) {
-                damager = (Player) ((Projectile) event.getDamager()).getShooter();
-                for (IPlayerDamaged ins : perkFactory.getPlayerDamageds()) {
-                    AbstractPerk perk = (AbstractPerk) ins;
-                    if (game.getDisabledPerks().stream().anyMatch(ignoredPerk -> ignoredPerk.getInternalPerkName().equals(perk.getInternalPerkName()))) {
-                        continue;
-                    }
-                    int level = perk.getPlayerLevel(player);
-                    processPlayerDamaged(ins, level, player, damager, event.getFinalDamage(), finalDamage, boostDamage, cancel);
+            }
+        }
+
+        if (bow && arrow != null) {
+            List<MetadataValue> data = arrow.getMetadata("enchant");
+            String enchantData = (data != null && !data.isEmpty()) ? data.get(0).asString() : null;
+
+            for (IPlayerShootEntity ins : perkFactory.getPlayerShootEntities()) {
+                AbstractPerk perk = (AbstractPerk) ins;
+                if (game.getDisabledPerks().stream().anyMatch(p -> p.getInternalPerkName().equals(perk.getInternalPerkName())))
+                    continue;
+                int level = perk.getPlayerLevel(attacker);
+                processShootEntity(ins, level, attacker, victim, arrow, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                if (cancel.get()) {
+                    event.setCancelled(true);
+                    return;
                 }
-
-
-                //enchant handler
-                //we should check has somber enchant on leggings
-                boolean somberFound = PlayerUtil.isEquippingSomber(damager);
-
-                if (!somberFound && event.getEntity() instanceof Player) {
-                    somberFound = PlayerUtil.isEquippingSomber((Player) event.getEntity());
-                }
-
-
-                //if found, dont process enchant
-
-                for (IPlayerDamaged ins : enchantmentFactor.getPlayerDamageds()) {
-                    AbstractEnchantment enchant = (AbstractEnchantment) ins;
-                    if ((PlayerUtil.shouldIgnoreEnchant(damager) || (event.getEntity() instanceof Player && PlayerUtil.shouldIgnoreEnchant(damager, (Player) event.getEntity()))) && (enchant.getRarity() != EnchantmentRarity.DARK_NORMAL && enchant.getRarity() != EnchantmentRarity.DARK_RARE)) {
-                        continue;
-                    }
-                    int level = enchant.getItemEnchantLevel(player.getItemInHand());
-                    if (player.getItemInHand() != null && player.getItemInHand().getType() != Material.AIR && player.getItemInHand().getType() != Material.LEATHER_LEGGINGS) {
-                        processPlayerDamaged(ins, level, player, event.getDamager(), event.getFinalDamage(), finalDamage, boostDamage, cancel);
-                    }
-                    if (player.getInventory().getLeggings() != null && player.getInventory().getLeggings().getType() != Material.AIR) {
-                        level = enchant.getItemEnchantLevel(player.getInventory().getLeggings());
-                        processPlayerDamaged(ins, level, player, damager, event.getFinalDamage(), finalDamage, boostDamage, cancel);
+            }
+            for (IPlayerShootEntity ins : questFactory.getPlayerShootEntities()) {
+                AbstractQuest quest = (AbstractQuest) ins;
+                QuestData currentQuest = attackerProfile.getCurrentQuest();
+                if (currentQuest != null && currentQuest.getInternalName().equals(quest.getQuestInternalName())) {
+                    processShootEntity(ins, currentQuest.getLevel(), attacker, victim, arrow, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                    if (cancel.get()) {
+                        event.setCancelled(true);
+                        return;
                     }
                 }
-
-
-                for (IPlayerDamaged ins : questFactory.getPlayerDamageds()) {
-                    AbstractQuest quest = (AbstractQuest) ins;
-                    QuestData currentQuest = profile.getCurrentQuest();
-                    if (currentQuest != null && currentQuest.getInternalName().equals(quest.getQuestInternalName())) {
-                        processPlayerDamaged(ins, currentQuest.getLevel(), player, damager, event.getFinalDamage(), finalDamage, boostDamage, cancel);
+            }
+            if (enchantData != null && !attackerIsSomber && !victimIsSomber && !attackerHasComboVenom && !ignoreAttackerStandardEnchants) {
+                final String[] split = enchantData.split(";");
+                for (String enchantStr : split) {
+                    final String[] enchStr = enchantStr.split(":");
+                    if (enchStr.length == 2) {
+                        final String enchantName = enchStr[0];
+                        final int level = Integer.parseInt(enchStr[1]);
+                        final AbstractEnchantment enchantment = enchantmentFactor.getEnchantmentMap().get(enchantName);
+                        if (enchantment instanceof IPlayerShootEntity) {
+                            if (enchantment.getRarity() == EnchantmentRarity.DARK_NORMAL || enchantment.getRarity() == EnchantmentRarity.DARK_RARE)
+                                continue;
+                            processShootEntity((IPlayerShootEntity) enchantment, level, attacker, victim, arrow, currentDamage, finalDamageAdditive, boostDamageMultiplier, cancel);
+                            if (cancel.get()) {
+                                event.setCancelled(true);
+                                return;
+                            }
+                        }
                     }
                 }
             }
@@ -435,83 +395,87 @@ public class GameEffectListener implements Listener {
 
         if (cancel.get()) {
             event.setCancelled(true);
-
-            assert damager != null;
+            return;
         }
 
-        event.setDamage(Math.max(1, event.getDamage()) * Math.max(0.2, boostDamage.get()));
+        double calculatedDamage = (currentDamage + finalDamageAdditive.get()) * boostDamageMultiplier.get();
+        calculatedDamage = Math.max(0.0, calculatedDamage);
 
+        event.setDamage(calculatedDamage);
+        final double finalAppliedDamage = event.getDamage();
 
-        if (damager != null) {
-            new PitDamageEvent(damager, event.getFinalDamage(), event.getDamage()).callEvent();
-            PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(damager.getUniqueId());
-            List<KillRecap.DamageData> damageLogs = profile.getKillRecap().getDamageLogs();
-            if (damageLogs.size() > 0) {
-                damageLogs.get(damageLogs.size() - 1).setBoostDamage(boostDamage.get());
-            }
-        }
+        new PitDamageEvent(attacker, finalAppliedDamage, currentDamage).callEvent();
 
-
-        if (event.getEntity() instanceof Player) {
-            Player player = (Player) event.getEntity();
-
-            if (damager != null) {
-                new PitDamagePlayerEvent(damager, event.getFinalDamage(), event.getDamage(), player).callEvent();
-            }
-
-//            if (PlayerUtil.cantIgnore(player)) {
-//                finalDamage.set(0.0);
-//            }
-
-            //mirror enchant code start
-            if (player.getInventory().getLeggings() != null) {
-                int enchantLevel = Utils.getEnchantLevel(player.getInventory().getLeggings(), "Mirror");
-                if (enchantLevel > 1 && finalDamage.get() > 0 && finalDamage.get() < 1000) {
-                    if (event.getDamager() instanceof Player && (!player.hasMetadata("mirror_latest_active") || (player.getMetadata("mirror_latest_active").size() > 0 && System.currentTimeMillis() - player.getMetadata("mirror_latest_active").get(0).asLong() > 500L))) {
-                        //damage giveback
-                        player.setMetadata("mirror_latest_active", new FixedMetadataValue(ThePit.getInstance(), System.currentTimeMillis()));
-                        damager = (Player) event.getDamager();
-                        if (!player.getUniqueId().equals(damager.getUniqueId())) {
-                            damager.damage(0.01, player);
-                        }
-                        float mirrorDamage = (float) (((enchantLevel * 25 - 25) * 0.01) * finalDamage.get());
-                        damager.setHealth(Math.max(0.1, damager.getHealth() - mirrorDamage));
+        if (victim.getInventory().getLeggings() != null) {
+            int enchantLevel = Utils.getEnchantLevel(victim.getInventory().getLeggings(), "Mirror");
+            double damageForMirror = finalDamageAdditive.get();
+            if (enchantLevel > 1 && damageForMirror > 0 && damageForMirror < 1000) {
+                if (melee && (!victim.hasMetadata("mirror_latest_active") || (!victim.getMetadata("mirror_latest_active").isEmpty() && System.currentTimeMillis() - victim.getMetadata("mirror_latest_active").get(0).asLong() > 500L))) {
+                    victim.setMetadata("mirror_latest_active", new FixedMetadataValue(ThePit.getInstance(), System.currentTimeMillis()));
+                    if (!victim.getUniqueId().equals(attacker.getUniqueId())) {
+                        attacker.damage(0.01, victim);
                     }
-                }
-                if (enchantLevel > 0 && finalDamage.get() > 0 && finalDamage.get() < 1000) {
-                    finalDamage.set(0);
+                    float mirrorDamage = (float) (((enchantLevel * 25 - 25) * 0.01) * damageForMirror);
+                    attacker.setHealth(Math.max(0.1, attacker.getHealth() - mirrorDamage));
                 }
             }
-            //mirror enchant code end
-            player.setLastDamageCause(event);
-            if (damager != null) {
-                ((CraftPlayer) player).getHandle().killer = ((CraftPlayer) damager).getHandle();
+            if (enchantLevel > 0 && damageForMirror > 0 && damageForMirror < 1000) {
+                finalDamageAdditive.set(0.0);
+                calculatedDamage = (currentDamage + finalDamageAdditive.get()) * boostDamageMultiplier.get();
+                calculatedDamage = Math.max(0.0, calculatedDamage);
+                event.setDamage(calculatedDamage);
             }
+        }
+        victim.setLastDamageCause(event);
+        try {
+            ((CraftPlayer) victim).getHandle().killer = ((CraftPlayer) attacker).getHandle();
+        } catch (Exception e) { /* Ignore potential cast errors */ }
 
-            if (player.getHealth() < finalDamage.get()) {
-                player.damage(500000.0);
-            } else {
-                player.setHealth(Math.max(player.getHealth() - finalDamage.get(), 0));
+        if (!event.isCancelled() && victim.getHealth() - event.getDamage() <= 0) {
+            AtomicDouble killCoin = new AtomicDouble(0);
+            AtomicDouble killExp = new AtomicDouble(0);
+            for (IPlayerKilledEntity ins : perkFactory.getPlayerKilledEntities()) {
+                if (ins instanceof AbstractPerk) {
+                    AbstractPerk perk = (AbstractPerk) ins;
+                    int level = perk.getPlayerLevel(attacker);
+                    processKilled(ins, level, attacker, victim, killCoin, killExp);
+                } else {
+                    processKilled(ins, -1, attacker, victim, killCoin, killExp);
+                }
+            }
+            for (IPlayerKilledEntity ins : enchantmentFactor.getPlayerKilledEntities()) {
+                int level = -1;
+                processKilled(ins, level, attacker, victim, killCoin, killExp);
+            }
+            AtomicDouble deathCoin = new AtomicDouble(0);
+            AtomicDouble deathExp = new AtomicDouble(0);
+            for (IPlayerBeKilledByEntity ins : perkFactory.getPlayerBeKilledByEntities()) {
+                if (ins instanceof AbstractPerk) {
+                    AbstractPerk perk = (AbstractPerk) ins;
+                    int level = perk.getPlayerLevel(victim);
+                    processBeKilledByEntity(ins, level, victim, attacker, deathCoin, deathExp);
+                } else {
+                    processBeKilledByEntity(ins, -1, victim, attacker, deathCoin, deathExp);
+                }
+            }
+            for (IPlayerBeKilledByEntity ins : enchantmentFactor.getPlayerBeKilledByEntities()) {
+                int level = -1;
+                processBeKilledByEntity(ins, level, victim, attacker, deathCoin, deathExp);
             }
         }
-        if (event.getEntity() instanceof Player) {
-            Player player = (Player) event.getEntity();
-            PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
-            if (profile.getPlayerOption().isDebugDamageMessage()) {
-                player.sendMessage(CC.translate("&7受到伤害(Damage/Final Damage): &c" + numFormatTwo.format(event.getDamage()) + "&7/&c" + numFormatTwo.format(event.getFinalDamage())));
-            }
-        }
-        if (event.getDamager() instanceof Player) {
-            Player player = (Player) event.getDamager();
-            PlayerProfile profile = PlayerProfile.getPlayerProfileByUuid(player.getUniqueId());
-            if (profile.getPlayerOption().isDebugDamageMessage()) {
-                player.sendMessage(CC.translate("&7造成伤害(Damage/Final Damage): &c" + numFormatTwo.format(event.getDamage()) + "&7/&c" + numFormatTwo.format(event.getFinalDamage())));
-                final EntityPlayer entityPlayer = ((CraftPlayer) player).getHandle();
+
+        if (attackerProfile.getPlayerOption().isDebugDamageMessage()) {
+            attacker.sendMessage(CC.translate("&7造成伤害(Damage/Final Damage): &c" + numFormatTwo.format(currentDamage) + "&7/&c" + numFormatTwo.format(event.getDamage())));
+            try {
+                final EntityPlayer entityPlayer = ((CraftPlayer) attacker).getHandle();
                 final double value = entityPlayer.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
-                final float enchantDamage = EnchantmentManager.a(entityPlayer.bA(), ((CraftLivingEntity) event.getEntity()).getHandle().getMonsterType());
+                final float enchantDamage = EnchantmentManager.a(entityPlayer.bA(), ((CraftLivingEntity) victim).getHandle().getMonsterType());
                 final boolean critical = entityPlayer.fallDistance > 0.0F && !entityPlayer.onGround && !entityPlayer.k_() && !entityPlayer.V() && !entityPlayer.hasEffect(MobEffectList.BLINDNESS) && entityPlayer.vehicle == null;
-                player.sendMessage(CC.translate("&7基础: &c" + value + "&7,附魔伤害: &c" + enchantDamage + "&7,暴击: &c" + critical));
-            }
+                attacker.sendMessage(CC.translate("&7基础: &c" + value + "&7,附魔伤害: &c" + enchantDamage + "&7,暴击: &c" + critical));
+            } catch (Exception e) {/* ignore */}
+        }
+        if (victimProfile.getPlayerOption().isDebugDamageMessage()) {
+            victim.sendMessage(CC.translate("&7受到伤害(Damage/Final Damage): &c" + numFormatTwo.format(currentDamage) + "&7/&c" + numFormatTwo.format(event.getDamage())));
         }
     }
 
@@ -537,22 +501,11 @@ public class GameEffectListener implements Listener {
     @SneakyThrows
     private void processShootEntity(IPlayerShootEntity ins, int level, Player damager, Entity target, Entity damageSource, double damage, AtomicDouble finalDamage, AtomicDouble boostDamage, AtomicBoolean cancel) {
         if (level != -1) {
-            Method handleShootEntity = ins.getClass().getMethod("handleShootEntity", int.class, Player.class, Entity.class, double.class, AtomicDouble.class, AtomicDouble.class, AtomicBoolean.class);
-
-            if (handleShootEntity.isAnnotationPresent(BowOnly.class) && !(damageSource instanceof Arrow)) {
-                return;
-            }
-            if (handleShootEntity.isAnnotationPresent(ThrowOnly.class) && damager instanceof Arrow) {
-                return;
-            }
-            if (ins.getClass().isAnnotationPresent(PlayerOnly.class) || handleShootEntity.isAnnotationPresent(PlayerOnly.class)) {
+            Method handleMethod = ins.getClass().getMethod("handleShootEntity", int.class, Player.class, Entity.class, double.class, AtomicDouble.class, AtomicDouble.class, AtomicBoolean.class);
+            if (handleMethod.isAnnotationPresent(PlayerOnly.class) || handleMethod.isAnnotationPresent(NotPlayerOnly.class)) {
                 if (target instanceof Player) {
                     Player player = (Player) target;
                     ins.handleShootEntity(level, damager, player, damage, finalDamage, boostDamage, cancel);
-                }
-            } else if (ins.getClass().isAnnotationPresent(NotPlayerOnly.class)) {
-                if (!(target instanceof Player)) {
-                    ins.handleShootEntity(level, damager, target, damage, finalDamage, boostDamage, cancel);
                 }
             } else {
                 ins.handleShootEntity(level, damager, target, damage, finalDamage, boostDamage, cancel);
@@ -564,14 +517,10 @@ public class GameEffectListener implements Listener {
     private void processPlayerDamaged(IPlayerDamaged ins, int level, Player player, Entity damager, double damage, AtomicDouble finalDamage, AtomicDouble boostDamage, AtomicBoolean cancel) {
         if (level != -1) {
             final Method method = ins.getClass().getMethod("handlePlayerDamaged", int.class, Player.class, Entity.class, double.class, AtomicDouble.class, AtomicDouble.class, AtomicBoolean.class);
-            if (method.isAnnotationPresent(PlayerOnly.class)) {
+            if (method.isAnnotationPresent(PlayerOnly.class) || method.isAnnotationPresent(NotPlayerOnly.class)) {
                 if (damager instanceof Player) {
                     Player damagerPlayer = (Player) damager;
                     ins.handlePlayerDamaged(level, player, damagerPlayer, damage, finalDamage, boostDamage, cancel);
-                }
-            } else if (method.isAnnotationPresent(NotPlayerOnly.class)) {
-                if (!(damager instanceof Player)) {
-                    ins.handlePlayerDamaged(level, player, damager, damage, finalDamage, boostDamage, cancel);
                 }
             } else {
                 ins.handlePlayerDamaged(level, player, damager, damage, finalDamage, boostDamage, cancel);
@@ -583,19 +532,14 @@ public class GameEffectListener implements Listener {
     private void processAttackEntity(IAttackEntity ins, int level, Player damager, Entity target, double damage, AtomicDouble finalDamage, AtomicDouble boostDamage, AtomicBoolean cancel) {
         if (level != -1) {
             final Method method = ins.getClass().getMethod("handleAttackEntity", int.class, Player.class, Entity.class, double.class, AtomicDouble.class, AtomicDouble.class, AtomicBoolean.class);
-            if (method.isAnnotationPresent(PlayerOnly.class)) {
+            if (method.isAnnotationPresent(PlayerOnly.class) || method.isAnnotationPresent(NotPlayerOnly.class)) {
                 if (target instanceof Player) {
                     Player player = (Player) target;
                     ins.handleAttackEntity(level, damager, player, damage, finalDamage, boostDamage, cancel);
-                }
-            } else if (method.isAnnotationPresent(NotPlayerOnly.class)) {
-                if (!(target instanceof Player) && damager == null) {
-                    ins.handleAttackEntity(level, damager, target, damage, finalDamage, boostDamage, cancel);
                 }
             } else {
                 ins.handleAttackEntity(level, damager, target, damage, finalDamage, boostDamage, cancel);
             }
         }
     }
-
 }

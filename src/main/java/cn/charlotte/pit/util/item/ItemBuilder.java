@@ -451,4 +451,16 @@ public class ItemBuilder {
 
         return this;
     }
+
+    /**
+     * Sets the legacy data value (e.g., for colored wool/glass).
+     * Note: Deprecated in newer Minecraft versions, use durability or specific ItemMeta instead.
+     * @param data The data value.
+     * @return This ItemBuilder.
+     */
+    @SuppressWarnings("deprecation") // Suppress warning for using legacy data
+    public ItemBuilder data(int data) {
+        this.is.setDurability((short) data); // In 1.8, data is stored as durability
+        return this;
+    }
 }

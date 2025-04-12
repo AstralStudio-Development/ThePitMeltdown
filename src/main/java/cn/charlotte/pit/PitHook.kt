@@ -84,12 +84,6 @@ object PitHook {
 
     fun init() {
         Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), {
-            try {
-                NewConfiguration.loadFile()
-                NewConfiguration.load()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
             registerActionBarManager()
             loadEnchants()
             loadPerks()
@@ -201,6 +195,7 @@ object PitHook {
 
     private fun loadEnchants() {
         val enchantmentFactor = ThePit.getInstance().enchantmentFactor
+
         val classes = mutableListOf(
             //Premium & Original
             JudgmentShot::class.java,

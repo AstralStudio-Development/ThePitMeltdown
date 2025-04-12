@@ -1025,10 +1025,7 @@ public class HamburgerEvent implements IEvent, IEpicEvent, Listener, IScoreBoard
 
             this.villagerDataMap.put(villager.getUniqueId(), new VillagerData(villager.getUniqueId(), villager));
         } catch (Exception e) {
-            Bukkit.getOnlinePlayers()
-                    .forEach(player -> {
-                        CC.printError(player, e);
-                    });
+            Bukkit.getOnlinePlayers().forEach(player -> CC.printError(player, e));
         }
 
     }
@@ -1196,10 +1193,7 @@ public class HamburgerEvent implements IEvent, IEpicEvent, Listener, IScoreBoard
                     event.villagerDataMap.remove(this.uuid);
                     event.spawnedLocations.remove(this.location);
                 } catch (Exception e) {
-                    Bukkit.getOnlinePlayers()
-                            .forEach(player -> {
-                                CC.printError(player, e);
-                            });
+                    Bukkit.getOnlinePlayers().forEach(player -> CC.printError(player, e));
                 }
             });
         }

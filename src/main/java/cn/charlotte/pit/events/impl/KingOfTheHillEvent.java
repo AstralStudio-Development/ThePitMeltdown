@@ -70,25 +70,27 @@ public class KingOfTheHillEvent implements IEvent, INormalEvent, Listener {
             ThePit.getInstance().getEventFactory().inactiveEvent(this);
             return;
         }
-        Bukkit.getPluginManager()
-                .registerEvents(this, ThePit.getInstance());
+        Bukkit.getPluginManager().registerEvents(this, ThePit.getInstance());
         Bukkit.broadcastMessage(CC.translate("&b&l占山为王！ &7现在你可以在指定区域内获得四倍的&b经验&7与&6硬币&7加成！"));
+
         spawnKothCircle(location, 7, Material.GOLD_BLOCK);
+
         BukkitRunnable runnable = new BukkitRunnable() {
             @Override
             public void run() {
                 ThePit.getInstance().getEventFactory().inactiveEvent(KingOfTheHillEvent.this);
             }
         };
-
         runnable.runTaskLater(ThePit.getInstance(), 20 * 60 * 4);
     }
 
     @Override
     public void onInactive() {
+        if (!isActive) return;
+        isActive = false;
         despawnKothCircle();
         HandlerList.unregisterAll(this);
-        isActive = false;
+        hillData = null;
     }
 
     @EventHandler
@@ -102,7 +104,6 @@ public class KingOfTheHillEvent implements IEvent, INormalEvent, Listener {
         }
     }
 
-
     public void spawnKothCircle(Location var1, int var2, Material var3) {
         int var4 = var2 + 1;
         int var5 = var1.getBlockX();
@@ -111,64 +112,75 @@ public class KingOfTheHillEvent implements IEvent, INormalEvent, Listener {
         World var8 = var1.getWorld();
         int var9 = var4 * var4;
 
+        this.blocks.clear();
+        this.blockData.clear();
+
         for (int var10 = var5 - var4; var10 <= var5 + var4; ++var10) {
             for (int var11 = var7 - var4; var11 <= var7 + var4; ++var11) {
                 if ((var5 - var10) * (var5 - var10) + (var7 - var11) * (var7 - var11) <= var9) {
                     Location var12 = new Location(var8, var10, var6, var11);
-                    Location var13 = new Location(var8, var5 + var4, var6, var7);
-                    Location var14 = new Location(var8, var5 - var4, var6, var7);
-                    Location var15 = new Location(var8, var5, var6, var7 + var4);
-                    Location var16 = new Location(var8, var5, var6, var7 - var4);
-                    if (!var12.equals(var13) && !var12.equals(var14) && !var12.equals(var15) && !var12.equals(var16)) {
-                        this.blocks.put(var8.getBlockAt(var10, var6, var11), var8.getBlockAt(var10, var6, var11).getType());
-                        this.blockData.put(var8.getBlockAt(var10, var6, var11), var8.getBlockAt(var10, var6, var11).getData());
-                        var8.getBlockAt(var10, var6, var11).setType(var3);
-                    }
+                    Block currentBlock = var8.getBlockAt(var10, var6, var11);
+                    this.blocks.put(currentBlock, currentBlock.getType());
+                    this.blockData.put(currentBlock, currentBlock.getData());
+                    currentBlock.setType(var3);
                 }
             }
         }
 
-        var8.getBlockAt(var1).setType(Material.STAINED_GLASS);
-        var8.getBlockAt(var1).setData((byte) 3);
+        Block centerGlass = var8.getBlockAt(var1);
+        this.blocks.put(centerGlass, centerGlass.getType());
+        this.blockData.put(centerGlass, centerGlass.getData());
+        centerGlass.setType(Material.STAINED_GLASS);
+        centerGlass.setData((byte) 3);
 
-        Block var17 = var1.clone().add(0.0, -1.0, 0.0).getBlock();
-        this.blocks.put(var17, var17.getType());
-        this.blockData.put(var17, var17.getData());
+        Block centerBeacon = var1.clone().add(0.0, -1.0, 0.0).getBlock();
+        this.blocks.put(centerBeacon, centerBeacon.getType());
+        this.blockData.put(centerBeacon, centerBeacon.getData());
+        centerBeacon.setType(Material.BEACON);
 
-        var17.setType(Material.BEACON);
-        hillData.setFirstHologram(HologramAPI.createHologram(var17.getLocation().clone().add(0.5, 5.0, 0.5), CC.translate("&b&l占山为王")));
-        hillData.setSecondHologram(HologramAPI.createHologram(var17.getLocation().clone().add(0.5, 4.5, 0.5), CC.translate("&e&l4x &b经验值&e/&6硬币")));
-        //hillData.setThirdHologram(HologramAPI.createHologram(var17.getLocation().clone().add(0, 3.3, 0.5), CC.translate("&a" + TimeUtil.millisToTimer(timer.getRemaining()))));
-
+        Location holoBaseLoc = centerBeacon.getLocation().clone().add(0.5, 0.0, 0.5);
+        hillData.setFirstHologram(HologramAPI.createHologram(holoBaseLoc.clone().add(0, 5.0, 0), CC.translate("&b&l占山为王")));
+        hillData.setSecondHologram(HologramAPI.createHologram(holoBaseLoc.clone().add(0, 4.5, 0), CC.translate("&e&l4x &b经验值&e/&6硬币")));
         hillData.getFirstHologram().spawn();
         hillData.getSecondHologram().spawn();
-        //hillData.getThirdHologram().spawn();
 
         for (int var18 = -1; var18 <= 1; ++var18) {
             for (int var19 = -1; var19 <= 1; ++var19) {
-                Block var20 = var1.clone().add(var18, -2.0, var19).getBlock();
-                this.blocks.put(var20, var20.getType());
-                var20.setType(var3);
-                this.blockData.put(var20, var20.getData());
+                Block platformBlock = var1.clone().add(var18, -2.0, var19).getBlock();
+                this.blocks.put(platformBlock, platformBlock.getType());
+                this.blockData.put(platformBlock, platformBlock.getData());
+                platformBlock.setType(var3);
             }
         }
     }
 
     public void despawnKothCircle() {
-        for (Map.Entry var2 : this.blocks.entrySet()) {
-            ((Block) var2.getKey()).setType((Material) var2.getValue());
-            ((Block) var2.getKey()).setData(this.blockData.get(var2.getKey()));
+        if (hillData != null) {
+            if (hillData.getFirstHologram() != null) hillData.getFirstHologram().deSpawn();
+            if (hillData.getSecondHologram() != null) hillData.getSecondHologram().deSpawn();
+            if (hillData.getThirdHologram() != null) hillData.getThirdHologram().deSpawn();
         }
-        hillData.getFirstHologram().deSpawn();
-        hillData.getSecondHologram().deSpawn();
-        //hillData.getThirdHologram().deSpawn();
+        for (Map.Entry<Block, Material> entry : this.blocks.entrySet()) {
+            Block block = entry.getKey();
+            Material originalType = entry.getValue();
+            Byte originalData = this.blockData.get(block);
+            if (originalData != null) {
+                block.setType(originalType);
+                block.setData(originalData);
+            } else {
+                block.setType(originalType);
+            }
+        }
+        this.blocks.clear();
+        this.blockData.clear();
     }
 
     public boolean isRegion(Player player) {
         Location location = player.getLocation();
-        if (location.add(0, -1, 0).getBlock().getType() == Material.GOLD_BLOCK) {
-            return true;
-        } else return location.add(0, -2, 0).getBlock().getType() == Material.GOLD_BLOCK;
+        Material type1 = location.clone().add(0, -1, 0).getBlock().getType();
+        if (type1 == Material.GOLD_BLOCK) return true;
+        Material type2 = location.clone().add(0, -2, 0).getBlock().getType();
+        return type2 == Material.GOLD_BLOCK;
     }
 
     @Data

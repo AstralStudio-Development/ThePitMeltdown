@@ -8,12 +8,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.UUID;
+import java.util.logging.Level;
 
 /**
  * @Author: EmptyIrony
@@ -21,50 +21,94 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
  */
 @AutoRegister
 public class BossBarHandler implements Listener {
-    private final ExecutorService executorService = new ScheduledThreadPoolExecutor(6);
     private final BossBar bossBar;
+    private BukkitTask updateTask;
+    private boolean running = false;
 
-    public BossBarHandler() {
-        this.bossBar = new BossBar("");
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (!bossBar.getTitle().equals("")) {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        if (bossBar.getWithers().get(player.getUniqueId()) == null) {
-                            bossBar.addPlayer(player);
-                        }
-                    }
-                    bossBar.update();
-                } else {
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        bossBar.removePlayer(player);
-                    }
-                }
-            }
-        }.runTaskTimerAsynchronously(ThePit.getInstance(), 5, 5);
+    private static BossBarHandler instance;
+    public static BossBarHandler getInstance() {
+        return instance;
     }
 
+    public BossBarHandler() {
+        instance = this;
+        this.bossBar = new BossBar("");
+
+        startUpdateTask();
+    }
+
+    private void startUpdateTask() {
+        if (running || updateTask != null) {
+             ThePit.getInstance().getLogger().warning("[BossBarHandler] Update task already running or exists.");
+             return;
+        }
+        running = true;
+        this.updateTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                boolean shouldBeVisible = bossBar.getTitle() != null && !bossBar.getTitle().isEmpty();
+
+                Bukkit.getScheduler().runTask(ThePit.getInstance(), () -> {
+                    if (!running) return;
+
+                    try {
+                        if (shouldBeVisible) {
+                            for (Player player : Bukkit.getOnlinePlayers()) {
+                                if (!bossBar.getWithers().containsKey(player.getUniqueId())) {
+                                    bossBar.addPlayer(player);
+                                }
+                            }
+                            bossBar.update();
+                        } else {
+                            Object[] playerUUIDs = bossBar.getWithers().keySet().toArray();
+                            for (Object uuidObj : playerUUIDs) {
+                                Player player = Bukkit.getPlayer((UUID)uuidObj);
+                                if (player != null) {
+                                     bossBar.removePlayer(player);
+                                }
+                             }
+                        }
+                    } catch (Exception e) {
+                        ThePit.getInstance().getLogger().log(Level.SEVERE, "[BossBarHandler] Error during synchronous boss bar update", e);
+                    }
+                });
+            }
+        }.runTaskTimerAsynchronously(ThePit.getInstance(), 20L, 10L);
+        ThePit.getInstance().getLogger().info("[BossBarHandler] BossBar update task started.");
+    }
+
+    public void stopUpdateTask() {
+        if (!running) return;
+        running = false;
+         if (this.updateTask != null) {
+             this.updateTask.cancel();
+             this.updateTask = null;
+             ThePit.getInstance().getLogger().info("[BossBarHandler] BossBar update task stopped.");
+         }
+         try {
+            Object[] playerUUIDs = bossBar.getWithers().keySet().toArray();
+            for (Object uuidObj : playerUUIDs) {
+                 Player player = Bukkit.getPlayer((UUID)uuidObj);
+                 if (player != null) {
+                     bossBar.removePlayer(player);
+                 }
+            }
+             bossBar.getWithers().clear();
+         } catch (Exception e) {
+             ThePit.getInstance().getLogger().log(Level.SEVERE, "[BossBarHandler] Error clearing boss bars on stop", e);
+         }
+    }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onJoin(PlayerJoinEvent event) {
-        this.bossBar.addPlayer(event.getPlayer());
+        if (bossBar.getTitle() != null && !bossBar.getTitle().isEmpty()) {
+             this.bossBar.addPlayer(event.getPlayer());
+        }
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         this.bossBar.removePlayer(event.getPlayer());
-    }
-
-
-    @EventHandler
-    public void onPlayerMove(PlayerMoveEvent event) {
-        executorService.execute(() -> this.bossBar.update(event.getPlayer()));
-    }
-
-    public ExecutorService getExecutorService() {
-        return this.executorService;
     }
 
     public BossBar getBossBar() {

@@ -21,6 +21,9 @@ import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.scheduler.BukkitRunnable
+import java.util.HashMap
+import java.util.concurrent.CompletableFuture
+import java.util.logging.Level
 
 /**
  * @author Araykal
@@ -44,7 +47,7 @@ class DamagePlus : IEvent, INormalEvent, Listener, IScoreBoardInsert {
             .registerEvents(this, ThePit.getInstance())
         runEffectTask()
         Bukkit.getScheduler().runTaskLater(ThePit.getInstance(), {
-            ThePit.getInstance().getEventFactory().inactiveEvent(this)
+            ThePit.getInstance().eventFactory.inactiveEvent(this)
             isActive = false
         }, 5 * 20L * 60L)
     }

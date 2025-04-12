@@ -23,11 +23,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class BountyRunnable implements Runnable {
     private final Random random = new Random();
+    @Getter
     private static final Map<UUID, AnimationData> animationDataMap = new HashMap<>();
-
-    public static Map<UUID, AnimationData> getAnimationDataMap() {
-        return animationDataMap;
-    }
 
     @Override
     public void run() {

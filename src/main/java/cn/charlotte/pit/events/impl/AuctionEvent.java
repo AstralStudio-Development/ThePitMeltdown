@@ -303,7 +303,7 @@ public class AuctionEvent implements IEvent, INormalEvent, Listener {
     public void onInactive() {
         isCustom = false;
         runnable.cancel();
-        if (!startByAdmin && ThePit.getInstance().getPitConfig().isGenesisEnable() && bidHistories.size() == 0) {
+        if (!startByAdmin && ThePit.getInstance().getPitConfig().isGenesisEnable() && bidHistories.isEmpty()) {
             return;
         }
         if (bidHistories.isEmpty()) {
@@ -377,7 +377,7 @@ public class AuctionEvent implements IEvent, INormalEvent, Listener {
 
     public static LotsData randomEnchantment() {
 
-        IMythicItem mythicItem = null;
+        IMythicItem mythicItem;
         ThreadLocalRandom random = ThreadLocalRandom.current();
         switch (random.nextInt(3)) {
             case 0:
@@ -408,7 +408,6 @@ public class AuctionEvent implements IEvent, INormalEvent, Listener {
                     .stream()
                     .filter(abstractEnchantment -> abstractEnchantment.canApply(finalMythicItem.toItemStack()))
                     .collect(Collectors.toList());
-            ;
             List<AbstractEnchantment> collect = list.stream()
                     .filter(abstractEnchantment -> abstractEnchantment.getRarity() == EnchantmentRarity.NORMAL).collect(Collectors.toList());
 
@@ -448,7 +447,7 @@ public class AuctionEvent implements IEvent, INormalEvent, Listener {
 
                         AbstractEnchantment enchantment = (AbstractEnchantment) RandomUtil.helpMeToChooseOne(results.toArray());
                         enchantments.add(enchantment);
-                        mythicItem.getEnchantments().put(enchantment, Math.min(enchantment.getMaxEnchantLevel(), 2));
+                        mythicItem.getEnchantments().put(enchantment, Math.min(enchantment.getMaxEnchantLevel(), 1));
                         break;
                     }
                     case 2: { //choice 0: 2 of Lv2 Enchantment

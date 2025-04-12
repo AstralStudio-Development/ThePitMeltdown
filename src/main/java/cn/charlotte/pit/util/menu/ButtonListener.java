@@ -12,13 +12,16 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.PlayerInventory;
 
+import java.util.UUID;
+
 @AutoRegister
 public class ButtonListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onButtonPress(InventoryClickEvent event) {
         Player player = (Player) event.getWhoClicked();
-        Menu openMenu = Menu.currentlyOpenedMenus.get(player.getName());
+        UUID playerUUID = player.getUniqueId();
+        Menu openMenu = Menu.currentlyOpenedMenus.get(playerUUID);
 
         if (openMenu != null) {
             if (event.getClickedInventory() instanceof PlayerInventory) {
@@ -51,8 +54,8 @@ public class ButtonListener implements Listener {
 
                 button.clicked(player, event.getSlot(), event.getClick(), event.getHotbarButton(), event.getCurrentItem());
 
-                if (Menu.currentlyOpenedMenus.containsKey(player.getName())) {
-                    Menu newMenu = Menu.currentlyOpenedMenus.get(player.getName());
+                if (Menu.currentlyOpenedMenus.containsKey(playerUUID)) {
+                    Menu newMenu = Menu.currentlyOpenedMenus.get(playerUUID);
 
                     if (newMenu == openMenu) {
                         boolean buttonUpdate = button.shouldUpdate(player, event.getSlot(), event.getClick());
@@ -85,12 +88,13 @@ public class ButtonListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onInventoryClose(InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
-        Menu openMenu = Menu.currentlyOpenedMenus.get(player.getName());
+        UUID playerUUID = player.getUniqueId();
+        Menu openMenu = Menu.currentlyOpenedMenus.get(playerUUID);
 
         if (openMenu != null) {
             openMenu.onClose(player);
 
-            Menu.currentlyOpenedMenus.remove(player.getName());
+            Menu.currentlyOpenedMenus.remove(playerUUID);
         }
     }
 

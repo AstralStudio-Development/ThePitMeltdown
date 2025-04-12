@@ -112,6 +112,11 @@ public class AssembleBoardEntry {
         this.board.getScoreboard().resetScores(this.identifier);
     }
 
+    // Getter for text field
+    public String getText() {
+        return text;
+    }
+
     public void setText(String text) {
         this.text = text;
     }

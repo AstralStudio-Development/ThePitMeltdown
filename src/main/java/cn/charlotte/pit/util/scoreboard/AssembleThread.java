@@ -9,14 +9,18 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 public class AssembleThread implements Runnable {
 
     private final Assemble assemble;
-
     protected int taskId;
+    private final boolean runAsynchronously;
 
     /**
      * Assemble Thread.
@@ -26,108 +30,221 @@ public class AssembleThread implements Runnable {
     AssembleThread(Assemble assemble) {
         this.assemble = assemble;
         Plugin protocolLib = Bukkit.getPluginManager().getPlugin("ProtocolLib");
-        if (protocolLib.getDescription().getVersion().startsWith("5")) {
-            taskId = Bukkit.getScheduler().runTaskTimer(ThePit.getInstance(), this, assemble.getTicks(), assemble.getTicks()).getTaskId();
-        } else {
+        this.runAsynchronously = (protocolLib != null && protocolLib.getDescription().getVersion().startsWith("5"));
+
+        if (runAsynchronously) {
             taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(ThePit.getInstance(), this, assemble.getTicks(), assemble.getTicks()).getTaskId();
+        } else {
+            taskId = Bukkit.getScheduler().runTaskTimer(ThePit.getInstance(), this, assemble.getTicks(), assemble.getTicks()).getTaskId();
         }
     }
 
     @Override
     @SneakyThrows
     public void run() {
-        tick();
+        if (runAsynchronously) {
+            asyncTick();
+        } else {
+            tick();
+        }
     }
 
     /**
-     * Tick logic for thread.
+     * Synchronous tick logic.
      */
     private void tick() {
         for (Player player : this.assemble.getPlugin().getServer().getOnlinePlayers()) {
             try {
-                AssembleBoard board = this.assemble.getBoards().get(player.getUniqueId());
-
-                // This shouldn't happen, but just in case.
-                if (board == null) {
-                    continue;
-                }
-
-                Scoreboard scoreboard = board.getScoreboard();
-                Objective objective = board.getObjective();
-
-                if (scoreboard == null || objective == null) {
-                    continue;
-                }
-
-                // Just make a variable so we don't have to
-                // process the same thing twice.
-                String title = ChatColor.translateAlternateColorCodes('&', this.assemble.getAdapter().getTitle(player));
-
-                // Update the title if needed.
-                if (!objective.getDisplayName().equals(title)) {
-                    objective.setDisplayName(title);
-                }
-
-                List<String> newLines = this.assemble.getAdapter().getLines(player);
-
-                // Allow adapter to return null/empty list to display nothing.
-                if (newLines == null || newLines.isEmpty()) {
-                    board.getEntries().forEach(AssembleBoardEntry::remove);
-                    board.getEntries().clear();
-                } else {
-                    if (newLines.size() > 15) {
-                        newLines = this.assemble.getAdapter().getLines(player).subList(0, 15);
-                    }
-
-                    // Reverse the lines because scoreboard scores are in descending order.
-                    if (!this.assemble.getAssembleStyle().isDescending()) {
-                        Collections.reverse(newLines);
-                    }
-
-                    // Remove excessive amount of board entries.
-                    if (board.getEntries().size() > newLines.size()) {
-                        for (int i = newLines.size(); i < board.getEntries().size(); i++) {
-                            AssembleBoardEntry entry = board.getEntryAtPosition(i);
-
-                            if (entry != null) {
-                                entry.remove();
-                            }
-                        }
-                    }
-
-                    // Update existing entries / add new entries.
-                    int cache = this.assemble.getAssembleStyle().getStartNumber();
-                    for (int i = 0; i < newLines.size(); i++) {
-                        AssembleBoardEntry entry = board.getEntryAtPosition(i);
-
-                        // Translate any colors.
-                        String line = ChatColor.translateAlternateColorCodes('&', newLines.get(i));
-
-                        // If the entry is null, just create a new one.
-                        // Creating a new AssembleBoardEntry instance will add
-                        // itself to the provided board's entries list.
-                        if (entry == null) {
-                            entry = new AssembleBoardEntry(board, line, i);
-                        }
-
-                        // Update text, setup the team, and update the display values.
-                        entry.setText(line);
-                        entry.setup();
-                        entry.send(
-                                this.assemble.getAssembleStyle().isDescending() ? cache-- : cache++
-                        );
-                    }
-                }
-
-                if (player.getScoreboard() != scoreboard && !assemble.isHook()) {
-                    player.setScoreboard(scoreboard);
-                }
+                updateBoard(player);
             } catch (Exception e) {
-                e.printStackTrace();
-                throw new AssembleException("There was an error updating " + player.getName() + "'s scoreboard.");
+                if (assemble.isDebugMode()) {
+                    e.printStackTrace();
+                }
+                assemble.getPlugin().getLogger().log(Level.SEVERE, "[Assemble] Error updating scoreboard for " + player.getName(), e);
             }
-
         }
     }
 
+    /**
+     * Asynchronous tick logic: Gathers data async, schedules sync updates.
+     */
+    private void asyncTick() {
+        for (Player player : this.assemble.getPlugin().getServer().getOnlinePlayers()) {
+            AssembleBoard board = this.assemble.getBoards().get(player.getUniqueId());
+            if (board == null) continue;
+
+            try {
+                AssembleAdapter adapter = this.assemble.getAdapter();
+                String newTitle = adapter.getTitle(player);
+                List<String> newLinesRaw = adapter.getLines(player);
+
+                final String finalNewTitle = (newTitle == null) ? "" : ChatColor.translateAlternateColorCodes('&', newTitle);
+                final List<String> finalNewLines = new ArrayList<>();
+                if (newLinesRaw != null) {
+                    for (String line : newLinesRaw) {
+                        if (line != null) {
+                            finalNewLines.add(ChatColor.translateAlternateColorCodes('&', line));
+                        }
+                    }
+                }
+                if (finalNewLines.size() > 15) {
+                    finalNewLines.subList(15, finalNewLines.size()).clear();
+                }
+
+                if (!this.assemble.getAssembleStyle().isDescending()) {
+                    Collections.reverse(finalNewLines);
+                }
+
+                boolean titleChanged = !Objects.equals(board.getLastTitle(), finalNewTitle);
+                boolean linesChanged = !Objects.equals(board.getLastLines(), finalNewLines);
+
+                if (!titleChanged && !linesChanged) {
+                    continue;
+                }
+
+                board.setLastTitle(finalNewTitle);
+                board.setLastLines(finalNewLines);
+
+                Bukkit.getScheduler().runTask(this.assemble.getPlugin(), () -> {
+                    Player onlinePlayer = Bukkit.getPlayer(board.getUuid());
+                    if (onlinePlayer == null || !onlinePlayer.isOnline()) return;
+
+                    AssembleBoard currentBoard = this.assemble.getBoards().get(board.getUuid());
+                    if (currentBoard == null) return;
+
+                    Scoreboard scoreboard = currentBoard.getScoreboard();
+                    Objective objective = currentBoard.getObjective();
+
+                    if (scoreboard == null || objective == null) {
+                        return;
+                    }
+
+                    try {
+                        if (titleChanged) {
+                            objective.setDisplayName(finalNewTitle);
+                        }
+
+                        if (linesChanged) {
+                            if (currentBoard.getEntries().size() > finalNewLines.size()) {
+                                for (int i = finalNewLines.size(); i < currentBoard.getEntries().size(); i++) {
+                                    AssembleBoardEntry entry = currentBoard.getEntryAtPosition(i);
+                                    if (entry != null) {
+                                        entry.remove();
+                                    }
+                                }
+                                currentBoard.getEntries().subList(finalNewLines.size(), currentBoard.getEntries().size()).clear();
+                            }
+
+                            int cache = this.assemble.getAssembleStyle().getStartNumber();
+                            for (int i = 0; i < finalNewLines.size(); i++) {
+                                AssembleBoardEntry entry = currentBoard.getEntryAtPosition(i);
+                                String line = finalNewLines.get(i);
+
+                                if (entry == null) {
+                                    entry = new AssembleBoardEntry(currentBoard, line, i);
+                                } else {
+                                    if (!Objects.equals(entry.getText(), line)) {
+                                        entry.setText(line);
+                                        entry.setup();
+                                    }
+                                }
+                                entry.send(this.assemble.getAssembleStyle().isDescending() ? cache-- : cache++);
+                            }
+                        }
+
+                        if (onlinePlayer.getScoreboard() != scoreboard && !assemble.isHook()) {
+                            onlinePlayer.setScoreboard(scoreboard);
+                        }
+                    } catch (Exception e) {
+                        if (assemble.isDebugMode()) {
+                            e.printStackTrace();
+                        }
+                        assemble.getPlugin().getLogger().log(Level.SEVERE, "[Assemble] Error applying sync update for " + onlinePlayer.getName(), e);
+                    }
+                });
+
+            } catch (Exception e) {
+                if (assemble.isDebugMode()) {
+                    e.printStackTrace();
+                }
+                assemble.getPlugin().getLogger().log(Level.SEVERE, "[Assemble] Error during async processing for " + player.getName(), e);
+            }
+        }
+    }
+
+    /**
+     * Handles the update for a single player (Used by synchronous tick).
+     * Contains the core update logic, ensuring it's called from the correct thread.
+     */
+    private void updateBoard(Player player) {
+        AssembleBoard board = this.assemble.getBoards().get(player.getUniqueId());
+        if (board == null) return;
+
+        Scoreboard scoreboard = board.getScoreboard();
+        Objective objective = board.getObjective();
+        if (scoreboard == null || objective == null) return;
+
+        AssembleAdapter adapter = this.assemble.getAdapter();
+        String newTitle = adapter.getTitle(player);
+        List<String> newLinesRaw = adapter.getLines(player);
+
+        final String finalNewTitle = (newTitle == null) ? "" : ChatColor.translateAlternateColorCodes('&', newTitle);
+        final List<String> finalNewLines = new ArrayList<>();
+        if (newLinesRaw != null) {
+            for (String line : newLinesRaw) {
+                if (line != null) {
+                    finalNewLines.add(ChatColor.translateAlternateColorCodes('&', line));
+                }
+            }
+        }
+        if (finalNewLines.size() > 15) {
+            finalNewLines.subList(15, finalNewLines.size()).clear();
+        }
+        if (!this.assemble.getAssembleStyle().isDescending()) {
+            Collections.reverse(finalNewLines);
+        }
+
+        boolean titleChanged = !Objects.equals(board.getLastTitle(), finalNewTitle);
+        boolean linesChanged = !Objects.equals(board.getLastLines(), finalNewLines);
+
+        if (!titleChanged && !linesChanged) {
+            return;
+        }
+
+        board.setLastTitle(finalNewTitle);
+        board.setLastLines(finalNewLines);
+
+        if (titleChanged) {
+            objective.setDisplayName(finalNewTitle);
+        }
+
+        if (linesChanged) {
+            if (board.getEntries().size() > finalNewLines.size()) {
+                for (int i = finalNewLines.size(); i < board.getEntries().size(); i++) {
+                    AssembleBoardEntry entry = board.getEntryAtPosition(i);
+                    if (entry != null) entry.remove();
+                }
+                board.getEntries().subList(finalNewLines.size(), board.getEntries().size()).clear();
+            }
+
+            int cache = this.assemble.getAssembleStyle().getStartNumber();
+            for (int i = 0; i < finalNewLines.size(); i++) {
+                AssembleBoardEntry entry = board.getEntryAtPosition(i);
+                String line = finalNewLines.get(i);
+                if (entry == null) {
+                    entry = new AssembleBoardEntry(board, line, i);
+                } else {
+                    if (!Objects.equals(entry.getText(), line)) {
+                        entry.setText(line);
+                        entry.setup();
+                    }
+                }
+                entry.send(this.assemble.getAssembleStyle().isDescending() ? cache-- : cache++);
+            }
+        }
+
+        if (player.getScoreboard() != scoreboard && !assemble.isHook()) {
+            player.setScoreboard(scoreboard);
+        }
+    }
 }
