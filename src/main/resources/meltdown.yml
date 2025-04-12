@@ -1,0 +1,13 @@
+# 这是 ThePitMeltdown 的主配置文件。
+# 正如你所看到的，有很多东西需要配置。某些选项可能会影响游戏玩法
+# 因此请谨慎使用，并确保在配置之前知道每个选项的作用。
+#
+# 如果您需要配置帮助或对 ThePitMeltdown 有任何疑问，
+# 加入我们的QQ群 - 773449670。
+#
+# 请勿修改版本号,这样做可能导致配置文件被重置。
+config-version: 2
+
+name-tag-tick: 20
+scoreboard-tick: 4
+pit-mode: mythic
