@@ -1,5 +1,6 @@
 ThePitMeltdown
 ===========
+### 此项目已被标记为过时,开发组仍然会进行维护,但更新次数将减少
 
 > 一个致力于添加更多功能的 [ThePitPremium](https://github.com/ThePitCommunity/ThePitPremium) 分支。
 
@@ -12,8 +13,6 @@ ThePitMeltdown
 ThePitMeltdown-API:
 
 如果你要将 ThePitMeltdown 作为依赖,那么你必须进行 [自行构建](#构建此插件)。
-
-如果你想要获得持续性的内容与性能更新，你可以通过联系 3379591176 购买 ThePitUltimate。
 
 ## 构建此插件
 
