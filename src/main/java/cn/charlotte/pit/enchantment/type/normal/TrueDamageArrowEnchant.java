@@ -25,7 +25,6 @@ import java.text.DecimalFormat;
  * @Created_In: 2021/1/30 15:33
  */
 @BowOnly
-@AutoRegister
 public class TrueDamageArrowEnchant extends AbstractEnchantment implements Listener {
     final DecimalFormat format = new DecimalFormat("0");
 

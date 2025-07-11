@@ -20,6 +20,8 @@ import java.util.Objects;
 
 public class Meltdown {
 
+    protected String version = "1.0.2";
+
     public static FileManager fileManager;
     public static YamlConfiguration config;
 
@@ -43,6 +45,7 @@ public class Meltdown {
 
         registerListeners("cn.charlotte.pit.enchantment.type.alternative");
         registerListeners("cn.charlotte.pit.enchantment.type.addon");
+        registerListeners("cn.charlotte.pit.enchantment.type.normal");
         registerListeners("cn.charlotte.pit.perk.type");
 
         Bukkit.getConsoleSender().sendMessage(CC.translate(prefix + "Listeners Done."));

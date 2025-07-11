@@ -124,7 +124,7 @@ public class ThePit extends JavaPlugin implements PluginMessageListener {
         return bungeeServerName == null ? random : bungeeServerName.toUpperCase();
     }
 
-    private static void setBungeeServerName(String name) {
+    public static void setBungeeServerName(String name) {
         bungeeServerName = name;
     }
 

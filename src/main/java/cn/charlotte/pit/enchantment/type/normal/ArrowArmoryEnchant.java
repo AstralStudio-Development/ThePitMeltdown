@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
  * @Author: Misoryan
  * @Created_In: 2021/3/24 19:57
  */
-@AutoRegister
 @BowOnly
 public class ArrowArmoryEnchant extends AbstractEnchantment implements Listener {
 

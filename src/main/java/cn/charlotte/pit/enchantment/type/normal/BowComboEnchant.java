@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @Author: Misoryan
  * @Created_In: 2021/3/25 14:23
  */
-@AutoRegister
 @BowOnly
 public class BowComboEnchant extends AbstractEnchantment implements IPlayerShootEntity, Listener, IActionDisplayEnchant {
 
@@ -132,4 +131,5 @@ public class BowComboEnchant extends AbstractEnchantment implements IPlayerShoot
     public String getText(int level, Player player) {
         return "&e&l" + combo.getOrDefault(player.getUniqueId(), 0) + "/" + (level >= 2 ? 2 : 3);
     }
+
 }

@@ -13,7 +13,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
 @WeaponOnly
-@AutoRegister
 public class LifeStealEnchant extends AbstractEnchantment implements Listener {
     @Override
     public String getEnchantName() {

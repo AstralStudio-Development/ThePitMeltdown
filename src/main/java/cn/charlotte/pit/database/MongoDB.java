@@ -46,6 +46,7 @@ public class MongoDB {
         final String mongoUser = ThePit.getInstance().getPitConfig().getMongoUser();
         final String mongoPassword = ThePit.getInstance().getPitConfig().getMongoPassword();
 
+        final String authDatabase = "admin";
         final String databaseName;
         if (ThePit.getInstance().getPitConfig().getDatabaseName() == null) {
             databaseName = "thePit";
@@ -55,9 +56,24 @@ public class MongoDB {
 
         final ServerAddress serverAddress = new ServerAddress(address, port);
         if (mongoUser != null && mongoPassword != null) {
+            /*
             final MongoCredential credential = MongoCredential.createCredential(mongoUser, databaseName, mongoPassword.toCharArray());
 
             this.mongoClient = new MongoClient(serverAddress, credential, new MongoClientOptions.Builder().build());
+
+             */
+
+            final MongoCredential credential = MongoCredential.createCredential(
+                    mongoUser,
+                    authDatabase, // 认证数据库改为admin [1,5](@ref)
+                    mongoPassword.toCharArray()
+            );
+
+            this.mongoClient = new MongoClient(serverAddress, credential,
+                    new MongoClientOptions.Builder()
+                            .uuidRepresentation(UuidRepresentation.JAVA_LEGACY) // 必须添加[5](@ref)
+                            .build()
+            );
         } else {
             this.mongoClient = new MongoClient(serverAddress);
         }

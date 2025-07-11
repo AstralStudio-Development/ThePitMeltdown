@@ -1,7 +1,7 @@
 name: ThePitMeltdown
-version: 1.0.0
-description: A Bukkit mini-game plugin.
-authors: [ AstralStudio ]
+version: Cloud
+description: A Bukkit mini-game plugin. Made by Stalyer
+authors: [ Stalyer ]
 
 api-version: 1.8
 main: cn.charlotte.pit.ThePit

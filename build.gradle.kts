@@ -6,7 +6,7 @@ plugins {
 }
 
 val pluginName = "ThePitMeltdown"
-val version = "1.0.0"
+val version = "1.0.1-SNAPSHOT"
 repositories {
     maven("https://maven.aliyun.com/repository/public/")
     // mavenCentral()
