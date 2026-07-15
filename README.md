@@ -28,7 +28,7 @@ ThePitMeltdown-API:
 ### 特别感谢
 
 ↓↓↓
-由ShanguanLinG与MikkoAbudo制作的 [ThePitUltimate]([https://github.com/ThePitCommunity/ThePitPremium](https://github.com/ShanguanLinG/ThePitUltimate))。
+> 由ShanguanLinG与MikkoAbudo制作的 [ThePitUltimate](https://github.com/ThePitCommunity/ThePitPremium](https://github.com/ShanguanLinG/ThePitUltimate)。
 
 ##### [MikkoAbudo](https://github.com/MikkoAbudo)
 ##### [ShanguanLinG](https://github.com/ShanguanLinG)
