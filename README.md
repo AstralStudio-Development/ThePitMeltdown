@@ -1,6 +1,5 @@
 ThePitMeltdown
 ===========
-### 此项目已被标记为过时,开发组仍然会进行维护,但更新次数将减少
 
 > 一个致力于添加更多功能的 [ThePitPremium](https://github.com/ThePitCommunity/ThePitPremium) 分支。
 
@@ -16,7 +15,7 @@ ThePitMeltdown-API:
 
 ## 构建此插件
 
-你需要最低 JDK 11 和一个可以正常访问各种 git/maven 库的网络。
+你需要最低 JDK 21 和一个可以正常访问各种 git/maven 库的网络。
 
 克隆此代码库, 在您的IDE里对此项目通过Gradle进行编译，即Tasks中的shadowJar。
 
@@ -27,6 +26,12 @@ ThePitMeltdown-API:
 请添加QQ群773449670以与我们取得联系。
 
 ### 特别感谢
+
+↓↓↓
+由ShanguanLinG与MikkoAbudo制作的 [ThePitUltimate]([https://github.com/ThePitCommunity/ThePitPremium](https://github.com/ShanguanLinG/ThePitUltimate))。
+
+##### [MikkoAbudo](https://github.com/MikkoAbudo)
+##### [ShanguanLinG](https://github.com/ShanguanLinG)
 
 ##### [BaiJiuSama](https://github.com/BaiJiuSama)
 ##### [Starry_Killer](https://github.com/AstralStalyer)
@@ -61,6 +66,10 @@ A: 我们在每个大型更新时会发布版本, 其包含一个jar文件, 您�
 Q: 我想要为项目贡献代码
 
 A: 我们欢迎所有人对此项目贡献代码, 当您联系开发组并说明来意, 我们将会处理您的请求。
+
+Q: ThePitMeltdown与在服务器 幻梦茶会 中使用的ThePitRefactor有什么区别吗?
+
+A: AstralStudio就是幻梦茶会的运维团队, Refactor更像是Meltdown的完整版本, 但我们仍然会开放几乎完整的内容面向社区。
 
 ### 「代码的生命不在于商业存活，而在于技术精神的延续」
 ###### 此代码库遵循GPL v3开源协议。
